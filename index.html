@@ -724,7 +724,11 @@ function generateHTML() {
   h += '<h5><span>Regulatory (IFRA/SDS)&nbsp;</span></h5>\n';
   if (d.sds)     h += '<p><a href="' + esc(d.sds) + '" style="' + lsa + '" target="_blank">Click here to view SDS</a></p>\n';
   if (d.ifracert) h += '<p><a href="' + esc(d.ifracert) + '" style="' + lsa + '" target="_blank">Click here to view IFRA</a></p>\n';
-  if (d.eu)      h += '<p><span style="' + ls + '"><span style="text-decoration: underline;"><a style="' + lsa + '" href="' + esc(d.eu) + '" target="_blank">Click here to view EU Allergen</a></span></span></p>\n';
+  if (d.eu) {
+    h += '<p><span style="' + ls + '"><span style="text-decoration: underline;"><a style="' + lsa + '" href="' + esc(d.eu) + '" target="_blank">Click here to view EU Allergen</a></span></span></p>\n';
+  } else {
+    h += '<p><span style="' + ls + '"><span style="text-decoration: underline;">Click here to view EU Allergen</span></span></p>\n';
+  }
   h += '<p><span style="text-decoration: underline; ' + ls + '"><a style="' + lsa + '" href="https://midwestfragranceco.com/pages/ifra-category-descriptions" target="_blank">IFRA Category Descriptions</a></span></p>\n';
   h += '<p>&nbsp;</p>\n';
   h += '<p>Disclaimer: The maximum usage rates listed are the ABSOLUTE maximum allowed&nbsp;%&nbsp;to be in compliance with IFRA standards. These are not suggested usage rates to be used in your products. Typical usage rates are much lower than these values. It is up to you to determine how much % will be needed for your specific product through your own testing process.&nbsp;</p>\n';
