@@ -7,18 +7,44 @@ const SHEET_NAME = "Fragrance Oils";
 const FILL_LINES_FOLDER_ID = "1mzHh_1FW2yKGbkTlf-vMv9gG4UUvECqU";
 const SOAP_TESTING_FOLDER_ID = "1xRp_MhxRovGyyEFkDszfa4JX6zp7QAV_";
 
+// Friendly display names — must match sheet header row exactly
 const COLUMNS = [
-  "name","original","desc","top","mid","base","altnames",
-  "vanillin","ethylvanillin","flash","phthalate","eo",
-  "ifra_1","ifra_2","ifra_3","ifra_4","ifra_5A","ifra_5B","ifra_5C","ifra_5D",
-  "ifra_6","ifra_7A","ifra_7B","ifra_8A","ifra_8B","ifra_9","ifra_10A","ifra_10B",
-  "ifra_11A","ifra_11B",
-  "sds","ifracert","eu",
-  "c_load","c_wax","c_space","c_size","c_burntime","c_wick","c_cold","c_hot","c_notes",
-  "s_load","s_lye","s_waterratio","s_sfat","s_oiltemp","s_vite","s_recipe",
-  "s_accel","s_ricing","s_discolor","s_trace","s_scent","s_design","s_notes",
-  "fill_line_photo","soap_test_photo"
+  "Oil Name","Midwest Maker Signature Scent?","Description","Top Notes","Middle Notes","Base Notes","Alt Naming Ideas",
+  "Vanillin %","Ethyl Vanillin %","Flashpoint (°F)","Phthalate Free?","Contains EOs?",
+  "IFRA Cat 1","IFRA Cat 2","IFRA Cat 3","IFRA Cat 4","IFRA Cat 5A","IFRA Cat 5B","IFRA Cat 5C","IFRA Cat 5D",
+  "IFRA Cat 6","IFRA Cat 7A","IFRA Cat 7B","IFRA Cat 8A","IFRA Cat 8B","IFRA Cat 9","IFRA Cat 10A","IFRA Cat 10B",
+  "IFRA Cat 11A","IFRA Cat 11B",
+  "SDS Link","IFRA Cert Link","EU Allergen Link",
+  "Candle FO Load","Wax Used","Burn Space","Candle Size","Burn Time","Wick(s)","Cold Throw","Hot Throw","Candle Notes","Fill Line Photo",
+  "Soap FO Load","Lye Concentration","Water:Lye Ratio","Superfat %","Oil Temp","Vitamin E %","Soap Recipe",
+  "Acceleration","Ricing","Discoloration","Trace","Scent Retention","Design Notes","Soap Notes","Soap Test Photo"
 ];
+
+// Map from tool field keys to friendly sheet column names
+const KEY_TO_COL = {
+  "name":"Oil Name","original":"Midwest Maker Signature Scent?","desc":"Description",
+  "top":"Top Notes","mid":"Middle Notes","base":"Base Notes","altnames":"Alt Naming Ideas",
+  "vanillin":"Vanillin %","ethylvanillin":"Ethyl Vanillin %","flash":"Flashpoint (°F)",
+  "phthalate":"Phthalate Free?","eo":"Contains EOs?",
+  "ifra_1":"IFRA Cat 1","ifra_2":"IFRA Cat 2","ifra_3":"IFRA Cat 3","ifra_4":"IFRA Cat 4",
+  "ifra_5A":"IFRA Cat 5A","ifra_5B":"IFRA Cat 5B","ifra_5C":"IFRA Cat 5C","ifra_5D":"IFRA Cat 5D",
+  "ifra_6":"IFRA Cat 6","ifra_7A":"IFRA Cat 7A","ifra_7B":"IFRA Cat 7B","ifra_8A":"IFRA Cat 8A",
+  "ifra_8B":"IFRA Cat 8B","ifra_9":"IFRA Cat 9","ifra_10A":"IFRA Cat 10A","ifra_10B":"IFRA Cat 10B",
+  "ifra_11A":"IFRA Cat 11A","ifra_11B":"IFRA Cat 11B",
+  "sds":"SDS Link","ifracert":"IFRA Cert Link","eu":"EU Allergen Link",
+  "c_load":"Candle FO Load","c_wax":"Wax Used","c_space":"Burn Space","c_size":"Candle Size",
+  "c_burntime":"Burn Time","c_wick":"Wick(s)","c_cold":"Cold Throw","c_hot":"Hot Throw",
+  "c_notes":"Candle Notes","fill_line_photo":"Fill Line Photo",
+  "s_load":"Soap FO Load","s_lye":"Lye Concentration","s_waterratio":"Water:Lye Ratio",
+  "s_sfat":"Superfat %","s_oiltemp":"Oil Temp","s_vite":"Vitamin E %","s_recipe":"Soap Recipe",
+  "s_accel":"Acceleration","s_ricing":"Ricing","s_discolor":"Discoloration","s_trace":"Trace",
+  "s_scent":"Scent Retention","s_design":"Design Notes","s_notes":"Soap Notes",
+  "soap_test_photo":"Soap Test Photo"
+};
+
+// Reverse map: friendly col name → tool field key
+const COL_TO_KEY = {};
+Object.keys(KEY_TO_COL).forEach(function(k) { COL_TO_KEY[KEY_TO_COL[k]] = k; });
 
 // Cache key prefix for chunked saves
 const CACHE_PREFIX = "mwfc_chunk1_";
@@ -108,7 +134,8 @@ function writeOilToSheet(data) {
   var sheet = getOrCreateSheet();
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0];
-  var nameIdx = headers.indexOf("name");
+  var nameIdx = headers.indexOf("Oil Name");
+  if (nameIdx === -1) nameIdx = headers.indexOf("name");
   var existingRow = -1;
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][nameIdx]).toLowerCase() === String(data.name).toLowerCase()) {
@@ -121,8 +148,10 @@ function writeOilToSheet(data) {
     headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - 1][i] || ""); });
   }
   var row = COLUMNS.map(function(col) {
-    if (data[col] !== undefined && data[col] !== null && String(data[col]) !== "") return data[col];
-    if (existingObj[col]) return existingObj[col];
+    var key = COL_TO_KEY[col] || col;
+    var val = data[key] !== undefined && data[key] !== null && String(data[key]) !== "" ? data[key] : "";
+    if (val !== "") return val;
+    if (existingObj[col] !== undefined && existingObj[col] !== "") return existingObj[col];
     return "";
   });
   if (existingRow > 0) {
@@ -152,12 +181,16 @@ function getAllOils() {
   var data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { oils: [], sheetUrl: ss.getUrl() };
   var headers = data[0];
-  var nameIdx = headers.indexOf("name");
+  var nameIdx = headers.indexOf("Oil Name");
+  if (nameIdx === -1) nameIdx = headers.indexOf("name");
   var oils = data.slice(1)
     .filter(function(row) { return row[nameIdx] && String(row[nameIdx]).trim() !== ""; })
     .map(function(row) {
       var obj = {};
-      headers.forEach(function(h, i) { obj[h] = row[i] !== undefined ? String(row[i]) : ""; });
+      headers.forEach(function(h, i) {
+        var key = COL_TO_KEY[h] || h;
+        obj[key] = row[i] !== undefined ? String(row[i]) : "";
+      });
       return obj;
     });
   return { oils: oils, sheetUrl: ss.getUrl() };
@@ -167,11 +200,15 @@ function getOneOil(name) {
   var sheet = getOrCreateSheet();
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
-  var nameIdx = headers.indexOf("name");
+  var nameIdx = headers.indexOf("Oil Name");
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][nameIdx]).toLowerCase() === String(name).toLowerCase()) {
       var obj = {};
-      headers.forEach(function(h, idx) { obj[h] = data[i][idx] !== undefined ? String(data[i][idx]) : ""; });
+      headers.forEach(function(h, idx) {
+        // Return data keyed by field key so the tool form can read it
+        var key = COL_TO_KEY[h] || h;
+        obj[key] = data[i][idx] !== undefined ? String(data[i][idx]) : "";
+      });
       return { oil: obj };
     }
   }
@@ -183,11 +220,12 @@ function searchOils(q) {
   var data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { names: [] };
   var headers = data[0];
-  var nameIdx = headers.indexOf("name");
+  var nameIdx = headers.indexOf("Oil Name");
+  if (nameIdx === -1) nameIdx = headers.indexOf("name");
   var lower = q.toLowerCase();
   var names = data.slice(1)
     .map(function(row) { return String(row[nameIdx]); })
-    .filter(function(n) { return n && n.toLowerCase().indexOf(lower) !== -1; });
+    .filter(function(n) { return n && n.trim() !== "" && n.toLowerCase().indexOf(lower) !== -1; });
   return { names: names };
 }
 
@@ -195,7 +233,8 @@ function deleteOil(name) {
   var sheet = getOrCreateSheet();
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
-  var nameIdx = headers.indexOf("name");
+  var nameIdx = headers.indexOf("Oil Name");
+  if (nameIdx === -1) nameIdx = headers.indexOf("name");
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][nameIdx]).toLowerCase() === String(name).toLowerCase()) {
       sheet.deleteRow(i + 1);
@@ -220,11 +259,12 @@ function uploadPhoto(oilName, photoType, fileName, fileData, mimeType) {
   var sheet = getOrCreateSheet();
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0];
-  var nameIdx = headers.indexOf("name");
-  var colKey = photoType === "fill_line" ? "fill_line_photo" : "soap_test_photo";
+  var nameIdx = headers.indexOf("Oil Name");
+  if (nameIdx === -1) nameIdx = headers.indexOf("name");
+  var colKey = photoType === "fill_line" ? "Fill Line Photo" : "Soap Test Photo";
   var colIdx = headers.indexOf(colKey);
   for (var i = 1; i < allData.length; i++) {
-    if (String(allData[i][nameIdx]).toLowerCase() === String(oilName).toLowerCase()) {
+    if (allData[i][nameIdx] && String(allData[i][nameIdx]).toLowerCase() === String(oilName).toLowerCase()) {
       sheet.getRange(i + 1, colIdx + 1).setValue(url);
       break;
     }
