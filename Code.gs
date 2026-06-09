@@ -9,7 +9,7 @@ const SOAP_TESTING_FOLDER_ID = "1xRp_MhxRovGyyEFkDszfa4JX6zp7QAV_";
 
 const COLUMNS = [
   "name","original","desc","top","mid","base","altnames",
-  "vanillin","ethylvanillin","flash","gravity","color","phthalate","eo",
+  "vanillin","ethylvanillin","flash","phthalate","eo",
   "ifra_1","ifra_2","ifra_3","ifra_4","ifra_5A","ifra_5B","ifra_5C","ifra_5D",
   "ifra_6","ifra_7A","ifra_7B","ifra_8A","ifra_8B","ifra_9","ifra_10A","ifra_10B",
   "ifra_11A","ifra_11B",

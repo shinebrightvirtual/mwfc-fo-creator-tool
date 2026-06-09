@@ -141,10 +141,7 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
       <div class="field"><label>Ethyl vanillin %</label><input type="text" id="f-ethylvanillin" placeholder="e.g. 0.00"></div>
       <div class="field"><label>Flashpoint (°F)</label><input type="text" id="f-flash" placeholder="e.g. 200"></div>
     </div>
-    <div class="nested g2">
-      <div class="field"><label>Specific gravity</label><input type="text" id="f-gravity" placeholder="e.g. 0.950"></div>
-      <div class="field"><label>Oil color</label><input type="text" id="f-color" placeholder="e.g. Light yellow"></div>
-    </div>
+
     <div class="nested g2">
       <div class="toggle-row"><input type="checkbox" id="f-phthalate" checked><label for="f-phthalate">Phthalate free</label></div>
       <div class="toggle-row"><input type="checkbox" id="f-eo"><label for="f-eo">Contains essential oils</label></div>
@@ -479,8 +476,7 @@ function getFields() {
     vanillin: r('f-vanillin'),
     ethylvanillin: r('f-ethylvanillin'),
     flash: r('f-flash'),
-    gravity: r('f-gravity'),
-    color: r('f-color'),
+
     phthalate: chk('f-phthalate') ? 'TRUE' : 'FALSE',
     eo: chk('f-eo') ? 'TRUE' : 'FALSE',
     sds: r('f-sds'),
@@ -523,8 +519,7 @@ function fillFields(d) {
   $('f-vanillin').value = d.vanillin || '';
   $('f-ethylvanillin').value = d.ethylvanillin || '';
   $('f-flash').value = d.flash || '';
-  $('f-gravity').value = d.gravity || '';
-  $('f-color').value = d.color || '';
+
   $('f-phthalate').checked = d.phthalate !== 'FALSE';
   $('f-eo').checked = d.eo === 'TRUE';
   IFRA_CATS.forEach(function(c) { $('ifra-' + c.id).value = d['ifra_' + c.id] || ''; });
@@ -708,9 +703,9 @@ function generateHTML() {
   h += '<p><strong>Vanillin:</strong> <span style="font-size: 0.875rem;">' + esc(val(d.vanillin,'0.00')) + '%&nbsp;</span></p>\n';
   h += '<p><strong>Ethyl Vanillin:</strong> ' + esc(val(d.ethylvanillin,'0.00')) + '%</p>\n';
   h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Flashpoint:</strong> ' + esc(val(d.flash,'TBD')) + 'ºF</span></p>\n';
-  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Specific Gravity:</strong>&nbsp;' + esc(val(d.gravity,'TBD')) + '</span></p>\n';
+
   h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>' + (d.eo === 'TRUE' ? 'Contains Essential Oils' : 'Contains NO Essential Oils') + '&nbsp;</strong></span></p>\n';
-  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Oil Color:&nbsp;</strong>' + esc(val(d.color,'TBD')) + '</span></p>\n';
+
   h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><br>It is the responsibility of the customer to ensure the safety of the finished product containing this fragrance by conducting all necessary tests. <span>Further testing required for your own product safety.&nbsp;</span></p>\n';
   h += '<p><span><br>All products are filled by weight not volume. Fill lines may vary.</span></p>\n';
   h += '<p><br>Avoid direct contact with skin.</p>\n';
