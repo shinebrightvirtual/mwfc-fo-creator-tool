@@ -252,34 +252,23 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
 const URL_STORAGE_KEY = 'mwfc_script_url';
 let SCRIPT_URL = localStorage.getItem(URL_STORAGE_KEY) || '';
 
-// ── JSONP helper (bypasses CORS for Apps Script) ────────────
-function api(params) {
-  return new Promise(function(resolve, reject) {
-    if (!SCRIPT_URL) { reject(new Error('Not connected — paste your Apps Script URL above')); return; }
-    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
-    const timeout = setTimeout(function() {
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      reject(new Error('Request timed out'));
-    }, 15000);
-    window[cbName] = function(data) {
-      clearTimeout(timeout);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      resolve(data);
-    };
-    const url = new URL(SCRIPT_URL);
-    Object.entries(params).forEach(function(kv) { url.searchParams.set(kv[0], kv[1]); });
-    url.searchParams.set('callback', cbName);
-    const script = document.createElement('script');
-    script.src = url.toString();
-    script.onerror = function() {
-      clearTimeout(timeout);
-      delete window[cbName];
-      reject(new Error('Script load failed — check URL'));
-    };
-    document.head.appendChild(script);
-  });
+// ── API helper ───────────────────────────────────────────────
+// Uses fetch() — works because Apps Script sets permissive CORS
+// when deployed as "Anyone" (no Google account required)
+async function api(params) {
+  if (!SCRIPT_URL) throw new Error('Not connected — paste your Apps Script URL above');
+  const url = new URL(SCRIPT_URL);
+  Object.entries(params).forEach(function(kv) { url.searchParams.set(kv[0], String(kv[1])); });
+  try {
+    const resp = await fetch(url.toString(), {redirect: 'follow'});
+    const text = await resp.text();
+    // Handle JSONP-style response if callback was added
+    const clean = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
+    try { return JSON.parse(clean); }
+    catch(e) { return JSON.parse(text); }
+  } catch(err) {
+    throw new Error('Connection failed: ' + err.message + '. Make sure "Who has access" is set to "Anyone" in deployment settings.');
+  }
 }
 
 const IFRA_CATS = [
