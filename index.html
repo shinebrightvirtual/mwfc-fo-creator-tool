@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MWFC Fragrance Oil Listing Tool</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --terra:#C6694E;--terra-light:#F9E0D8;--peach:#CD9378;--peach-light:#FBF0EB;
+  --blue:#8F9CBF;--blue-light:#EEF0F7;--olive:#5F5426;--olive-light:#F4F2E8;
+  --black:#282410;--off-white:#FCF2EF;--white:#FFFFFF;--border:#DDD0C8;
+  --mid:#9A8880;
+}
+body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--black);font-size:13px;}
+.app{max-width:960px;margin:0 auto;padding:20px 16px 40px;}
+.app-header{background:var(--black);color:var(--off-white);padding:18px 24px;border-radius:10px;margin-bottom:20px;}
+.app-header h1{font-size:16px;font-weight:700;letter-spacing:0.5px;}
+.app-header .sub{font-size:11px;color:var(--peach);margin-top:2px;}
+
+/* Config bar */
+.config-bar{background:white;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.config-bar label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--mid);white-space:nowrap;}
+.config-bar input{flex:1;min-width:200px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:12px;}
+.config-bar .conn-status{font-size:12px;font-weight:600;}
+.conn-status.ok{color:#5a7a4a;} .conn-status.err{color:#b04040;} .conn-status.idle{color:var(--mid);}
+
+.top-bar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+.search-wrap{flex:1;min-width:200px;position:relative;}
+.search-wrap input{width:100%;padding:8px 32px 8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:white;}
+#search-results{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:6px;z-index:200;max-height:220px;overflow-y:auto;margin-top:2px;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.12);}
+.sr-item{padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--off-white);}
+.sr-item:last-child{border-bottom:none;}
+.sr-item:hover{background:var(--off-white);}
+.clear-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--mid);font-size:16px;line-height:1;padding:0;}
+.status{font-size:12px;color:var(--mid);min-height:16px;margin-bottom:10px;padding:2px 0;}
+.status.ok{color:#5a7a4a;} .status.err{color:#b04040;}
+
+.card{background:white;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;}
+.card-head{padding:11px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;font-size:11px;font-weight:700;letter-spacing:0.7px;text-transform:uppercase;}
+.card-head.terra{background:var(--terra-light);color:var(--terra);}
+.card-head.peach{background:var(--peach-light);color:#8B5A40;}
+.card-head.blue{background:var(--blue-light);color:#4A5A7A;}
+.card-head.olive{background:var(--olive-light);color:var(--olive);}
+.card-body{padding:16px;display:grid;gap:12px;}
+.card-body.hidden{display:none;}
+.g2{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:1fr 1fr 1fr;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:11px;color:var(--mid);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+.field input,.field textarea{padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:white;color:var(--black);font-family:'Arial',sans-serif;}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--terra);}
+.field textarea{resize:vertical;min-height:72px;}
+.nested{display:grid;gap:12px;}
+.toggle-row{display:flex;align-items:center;gap:8px;padding-top:14px;}
+.toggle-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--terra);}
+.ifra-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.ifra-item{display:flex;flex-direction:column;gap:3px;}
+.ifra-item label{font-size:10px;color:var(--mid);}
+.ifra-item input{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:5px;}
+.photo-area{border:1.5px dashed var(--border);border-radius:8px;padding:16px;text-align:center;cursor:pointer;position:relative;transition:all 0.15s;}
+.photo-area:hover{border-color:var(--terra);background:var(--terra-light);}
+.photo-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.photo-area .ph-label{font-size:12px;color:var(--mid);pointer-events:none;}
+.photo-link{font-size:12px;margin-top:6px;} .photo-link a{color:var(--terra);}
+.upload-msg{font-size:12px;color:var(--mid);font-style:italic;margin-top:4px;}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;padding-top:6px;}
+.btn{padding:8px 16px;border-radius:6px;font-size:13px;font-family:'Arial',sans-serif;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:white;color:var(--black);transition:all 0.15s;}
+.btn:hover{border-color:var(--black);}
+.btn-primary{background:var(--terra);color:white;border-color:var(--terra);}
+.btn-primary:hover{background:#b05a3e;}
+.btn-danger{color:#b04040;border-color:#e0b0b0;}
+.btn-danger:hover{background:#fff0f0;}
+.output-wrap{margin-top:16px;}
+.output-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.output-head span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--mid);}
+.output-box{background:var(--black);color:#e8ddd5;font-family:monospace;font-size:11px;padding:16px;border-radius:8px;white-space:pre-wrap;word-break:break-all;max-height:480px;overflow-y:auto;line-height:1.7;}
+@media(max-width:600px){.g2,.g3{grid-template-columns:1fr;}.config-bar{flex-direction:column;align-items:flex-start;}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="app-header">
+  <h1>Fragrance Oil Listing Tool</h1>
+  <div class="sub">Midwest Fragrance Co. · Internal Use Only</div>
+</div>
+
+<!-- Script URL config -->
+<div class="config-bar">
+  <label>Apps Script URL</label>
+  <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/…/exec">
+  <button class="btn" id="btn-connect">Connect</button>
+  <span class="conn-status idle" id="conn-status">Not connected</span>
+</div>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <div class="search-wrap">
+    <input id="oil-search" type="text" placeholder="Search or select an oil to load…" autocomplete="off">
+    <button class="clear-x" id="clear-search" title="Clear">✕</button>
+    <div id="search-results"></div>
+  </div>
+  <button class="btn" id="btn-new">+ New oil</button>
+  <button class="btn btn-primary" id="btn-save">Save</button>
+  <button class="btn btn-danger" id="btn-delete" style="display:none;">Delete</button>
+</div>
+<div class="status" id="status-msg"></div>
+
+<!-- Identity -->
+<div class="card">
+  <div class="card-head terra" data-target="s-identity">Identity <span>▾</span></div>
+  <div class="card-body" id="s-identity">
+    <div class="field"><label>Oil name</label><input type="text" id="f-name" placeholder="e.g. Cashmere Cedar"></div>
+    <div class="toggle-row"><input type="checkbox" id="f-original"><label for="f-original">Midwest Maker Signature Scent</label></div>
+  </div>
+</div>
+
+<!-- Scent Description -->
+<div class="card">
+  <div class="card-head peach" data-target="s-desc">Scent Description <span>▾</span></div>
+  <div class="card-body" id="s-desc">
+    <div class="field"><label>Description paragraph</label><textarea id="f-desc" rows="4" placeholder="The main story/mood paragraph…"></textarea></div>
+    <div class="nested g3">
+      <div class="field"><label>Top notes</label><input type="text" id="f-top" placeholder="e.g. Vanilla Sugar"></div>
+      <div class="field"><label>Middle notes</label><input type="text" id="f-mid" placeholder="e.g. Rose, Jasmine"></div>
+      <div class="field"><label>Base notes</label><input type="text" id="f-base" placeholder="e.g. Cedarwood, Musk"></div>
+    </div>
+    <div class="field"><label>Alternative naming ideas</label><input type="text" id="f-altnames" placeholder="Comma-separated suggestions"></div>
+  </div>
+</div>
+
+<!-- Fragrance Overview -->
+<div class="card">
+  <div class="card-head terra" data-target="s-overview">Fragrance Overview <span>▾</span></div>
+  <div class="card-body" id="s-overview">
+    <div class="nested g3">
+      <div class="field"><label>Vanillin %</label><input type="text" id="f-vanillin" placeholder="e.g. 0.00"></div>
+      <div class="field"><label>Ethyl vanillin %</label><input type="text" id="f-ethylvanillin" placeholder="e.g. 0.00"></div>
+      <div class="field"><label>Flashpoint (°F)</label><input type="text" id="f-flash" placeholder="e.g. 200"></div>
+    </div>
+    <div class="nested g2">
+      <div class="field"><label>Specific gravity</label><input type="text" id="f-gravity" placeholder="e.g. 0.950"></div>
+      <div class="field"><label>Oil color</label><input type="text" id="f-color" placeholder="e.g. Light yellow"></div>
+    </div>
+    <div class="nested g2">
+      <div class="toggle-row"><input type="checkbox" id="f-phthalate" checked><label for="f-phthalate">Phthalate free</label></div>
+      <div class="toggle-row"><input type="checkbox" id="f-eo"><label for="f-eo">Contains essential oils</label></div>
+    </div>
+  </div>
+</div>
+
+<!-- IFRA -->
+<div class="card">
+  <div class="card-head blue" data-target="s-ifra">IFRA Max Use Rates — All 18 Categories <span>▾</span></div>
+  <div class="card-body" id="s-ifra">
+    <div class="ifra-grid" id="ifra-grid"></div>
+  </div>
+</div>
+
+<!-- Regulatory -->
+<div class="card">
+  <div class="card-head peach" data-target="s-docs">Regulatory Documents <span>▾</span></div>
+  <div class="card-body g3" id="s-docs">
+    <div class="field"><label>SDS link</label><input type="text" id="f-sds" placeholder="Google Drive URL"></div>
+    <div class="field"><label>IFRA certificate link</label><input type="text" id="f-ifracert" placeholder="Google Drive URL"></div>
+    <div class="field"><label>EU Allergen link</label><input type="text" id="f-eu" placeholder="Google Drive URL"></div>
+  </div>
+</div>
+
+<!-- Candle Testing -->
+<div class="card">
+  <div class="card-head olive" data-target="s-candle">Candle Testing Notes <span>▾</span></div>
+  <div class="card-body" id="s-candle">
+    <div class="nested g3">
+      <div class="field"><label>FO load %</label><input type="text" id="c-load" placeholder="e.g. 8%"></div>
+      <div class="field"><label>Wax used</label><input type="text" id="c-wax" placeholder="e.g. Golden 464"></div>
+      <div class="field"><label>Burn space</label><input type="text" id="c-space" placeholder="e.g. 60 sq ft"></div>
+    </div>
+    <div class="nested g3">
+      <div class="field"><label>Candle size</label><input type="text" id="c-size" placeholder="e.g. 8 oz"></div>
+      <div class="field"><label>Burn time</label><input type="text" id="c-burntime" placeholder="e.g. 3 hours"></div>
+      <div class="field"><label>Wick(s)</label><input type="text" id="c-wick" placeholder="e.g. CD-18"></div>
+    </div>
+    <div class="nested g2">
+      <div class="field"><label>Cold throw notes</label><input type="text" id="c-cold" placeholder="e.g. Strong, true to scent"></div>
+      <div class="field"><label>Hot throw notes</label><input type="text" id="c-hot" placeholder="e.g. Excellent, fills room"></div>
+    </div>
+    <div class="field"><label>Additional candle notes</label><textarea id="c-notes" rows="2"></textarea></div>
+  </div>
+</div>
+
+<!-- Fill Line Photo -->
+<div class="card">
+  <div class="card-head olive" data-target="s-fillphoto">Fill Line Photo <span>▾</span></div>
+  <div class="card-body" id="s-fillphoto">
+    <div class="photo-area"><input type="file" id="fill-photo" accept="image/*"><div class="ph-label">📷 Click to upload fill line photo</div></div>
+    <div class="upload-msg" id="fill-msg" style="display:none;"></div>
+    <div class="photo-link" id="fill-link" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Soap Testing -->
+<div class="card">
+  <div class="card-head blue" data-target="s-soap">Cold Process Soap Testing Notes <span>▾</span></div>
+  <div class="card-body" id="s-soap">
+    <div class="nested g3">
+      <div class="field"><label>FO load %</label><input type="text" id="s-load" placeholder="e.g. 5%"></div>
+      <div class="field"><label>Lye concentration %</label><input type="text" id="s-lye" placeholder="e.g. 30%"></div>
+      <div class="field"><label>Water:lye ratio</label><input type="text" id="s-waterratio" placeholder="e.g. 2.300:1"></div>
+    </div>
+    <div class="nested g3">
+      <div class="field"><label>Superfat %</label><input type="text" id="s-sfat" placeholder="e.g. 5%"></div>
+      <div class="field"><label>Oil temp (°F)</label><input type="text" id="s-oiltemp" placeholder="e.g. 90"></div>
+      <div class="field"><label>Vitamin E %</label><input type="text" id="s-vite" placeholder="e.g. 0.01%"></div>
+    </div>
+    <div class="field"><label>Custom recipe (leave blank for standard)</label><input type="text" id="s-recipe" placeholder="Standard: 33% Palm, 33% Coconut, 16% Canola, 14.9% Olive, 3% Castor, 0.01% Vit E"></div>
+    <div class="nested g3">
+      <div class="field"><label>Acceleration</label><input type="text" id="s-accel" placeholder="TBD"></div>
+      <div class="field"><label>Ricing</label><input type="text" id="s-ricing" placeholder="TBD"></div>
+      <div class="field"><label>Discoloration</label><input type="text" id="s-discolor" placeholder="TBD"></div>
+    </div>
+    <div class="nested g2">
+      <div class="field"><label>Trace</label><input type="text" id="s-trace" placeholder="TBD"></div>
+      <div class="field"><label>Scent retention</label><input type="text" id="s-scent" placeholder="TBD"></div>
+    </div>
+    <div class="field"><label>Design notes</label><input type="text" id="s-design" placeholder="TBD"></div>
+    <div class="field"><label>Additional soap notes</label><textarea id="s-notes" rows="2"></textarea></div>
+    <div style="margin-top:4px;">
+      <div style="font-size:11px;color:var(--mid);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Soap Testing Photo</div>
+      <div class="photo-area"><input type="file" id="soap-photo" accept="image/*"><div class="ph-label">📷 Click to upload soap testing photo</div></div>
+      <div class="upload-msg" id="soap-msg" style="display:none;"></div>
+      <div class="photo-link" id="soap-link" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="actions">
+  <button class="btn btn-primary" id="btn-generate">Generate HTML listing</button>
+  <button class="btn" id="btn-save2">Save</button>
+  <button class="btn" id="btn-clear">Clear form</button>
+</div>
+
+<div class="output-wrap" id="output-wrap" style="display:none;">
+  <div class="output-head"><span>Generated HTML — ready to paste into Shopify</span><button class="btn" id="btn-copy">Copy</button></div>
+  <div class="output-box" id="html-output"></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ── Config ─────────────────────────────────────────────────
+const URL_STORAGE_KEY = 'mwfc_script_url';
+let SCRIPT_URL = localStorage.getItem(URL_STORAGE_KEY) || '';
+
+const IFRA_CATS = [
+  {id:'1',  label:'Cat. 1 — Lip products'},
+  {id:'2',  label:'Cat. 2 — Deodorant/antiperspirant'},
+  {id:'3',  label:'Cat. 3 — Eye area'},
+  {id:'4',  label:'Cat. 4 — Fine jewelry/fabric'},
+  {id:'5A', label:'Cat. 5A — Body lotion (leave-on)'},
+  {id:'5B', label:'Cat. 5B — Face cream (leave-on)'},
+  {id:'5C', label:'Cat. 5C — Hand cream (leave-on)'},
+  {id:'5D', label:'Cat. 5D — Baby lotion'},
+  {id:'6',  label:'Cat. 6 — Mouthwash'},
+  {id:'7A', label:'Cat. 7A — Rinse-off hair'},
+  {id:'7B', label:'Cat. 7B — Leave-on hair'},
+  {id:'8A', label:'Cat. 8A — Rinse-off face'},
+  {id:'8B', label:'Cat. 8B — Intimate wash'},
+  {id:'9',  label:'Cat. 9 — Rinse-off body/soap'},
+  {id:'10A',label:'Cat. 10A — Reed diffuser/leave-on'},
+  {id:'10B',label:'Cat. 10B — Laundry rinse-off'},
+  {id:'11A',label:'Cat. 11A — Room spray'},
+  {id:'11B',label:'Cat. 11B — Candle (burning)'},
+];
+
+// ── Build IFRA grid ─────────────────────────────────────────
+(function buildIFRAGrid() {
+  const grid = document.getElementById('ifra-grid');
+  IFRA_CATS.forEach(function(c) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ifra-item';
+    const lbl = document.createElement('label');
+    lbl.textContent = c.label;
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.id = 'ifra-' + c.id;
+    inp.placeholder = 'e.g. 15.2';
+    wrap.appendChild(lbl);
+    wrap.appendChild(inp);
+    grid.appendChild(wrap);
+  });
+})();
+
+// ── Collapsible cards ───────────────────────────────────────
+document.querySelectorAll('.card-head').forEach(function(h) {
+  h.addEventListener('click', function() {
+    const b = document.getElementById(h.dataset.target);
+    if (b) b.classList.toggle('hidden');
+  });
+});
+
+// ── Helpers ─────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function setStatus(msg, type) {
+  const el = $('status-msg');
+  el.textContent = msg;
+  el.className = 'status ' + (type || '');
+}
+function setConnStatus(msg, type) {
+  const el = $('conn-status');
+  el.textContent = msg;
+  el.className = 'conn-status ' + (type || 'idle');
+}
+
+// ── API call via fetch ──────────────────────────────────────
+async function api(params) {
+  if (!SCRIPT_URL) throw new Error('Not connected — paste your Apps Script URL above');
+  const url = new URL(SCRIPT_URL);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const resp = await fetch(url.toString());
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const text = await resp.text();
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('Bad response from server — check Script URL'); }
+}
+
+// ── Connect ─────────────────────────────────────────────────
+if (SCRIPT_URL) {
+  $('script-url').value = SCRIPT_URL;
+  setConnStatus('Testing connection…', 'idle');
+  api({action:'getAll'}).then(function(r) {
+    if (r.oils !== undefined) {
+      setConnStatus('✓ Connected — ' + r.oils.length + ' oils in sheet', 'ok');
+      populateDropdown(r.oils.map(function(o) { return o.name; }).filter(Boolean));
+    }
+  }).catch(function() { setConnStatus('Could not connect', 'err'); });
+}
+
+$('btn-connect').addEventListener('click', async function() {
+  const url = $('script-url').value.trim();
+  if (!url) { setConnStatus('Paste your URL first', 'err'); return; }
+  SCRIPT_URL = url;
+  setConnStatus('Connecting…', 'idle');
+  try {
+    const r = await api({action:'getAll'});
+    if (r.oils !== undefined) {
+      localStorage.setItem(URL_STORAGE_KEY, url);
+      setConnStatus('✓ Connected — ' + r.oils.length + ' oils in sheet', 'ok');
+      populateDropdown(r.oils.map(function(o) { return o.name; }).filter(Boolean));
+    } else {
+      setConnStatus('Connected but unexpected response', 'err');
+    }
+  } catch(e) {
+    setConnStatus('Failed: ' + e.message, 'err');
+  }
+});
+
+// ── Dropdown — all oil names ────────────────────────────────
+let allOilNames = [];
+function populateDropdown(names) {
+  allOilNames = names.sort();
+}
+
+const searchInput = $('oil-search');
+const searchResults = $('search-results');
+let searchTimer = null;
+
+searchInput.addEventListener('focus', function() {
+  // Show all oils on focus if field is empty
+  if (!searchInput.value.trim() && allOilNames.length) {
+    showDropdown(allOilNames);
+  }
+});
+
+searchInput.addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim().toLowerCase();
+  if (!q) {
+    showDropdown(allOilNames);
+    return;
+  }
+  searchTimer = setTimeout(function() {
+    const matches = allOilNames.filter(function(n) {
+      return n.toLowerCase().indexOf(q) !== -1;
+    });
+    showDropdown(matches);
+  }, 150);
+});
+
+function showDropdown(names) {
+  if (!names.length) { searchResults.style.display = 'none'; return; }
+  searchResults.innerHTML = names.map(function(n) {
+    return '<div class="sr-item" data-name="' + n.replace(/"/g, '&quot;') + '">' + n + '</div>';
+  }).join('');
+  searchResults.style.display = 'block';
+}
+
+searchResults.addEventListener('click', async function(e) {
+  const item = e.target.closest('.sr-item');
+  if (!item) return;
+  const name = item.dataset.name;
+  searchResults.style.display = 'none';
+  searchInput.value = name;
+  setStatus('Loading ' + name + '…');
+  try {
+    const r = await api({action:'getOne', name:name});
+    if (r.oil) {
+      fillFields(r.oil);
+      currentName = name;
+      $('btn-delete').style.display = '';
+      setStatus('✓ Loaded: ' + name, 'ok');
+    } else {
+      setStatus('Not found in sheet', 'err');
+    }
+  } catch(e) {
+    setStatus('Error: ' + e.message, 'err');
+  }
+});
+
+$('clear-search').addEventListener('click', function() {
+  searchInput.value = '';
+  searchResults.style.display = 'none';
+});
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.search-wrap')) searchResults.style.display = 'none';
+});
+
+// ── Fields ──────────────────────────────────────────────────
+let currentName = null;
+
+function getFields() {
+  const ifra = {};
+  IFRA_CATS.forEach(function(c) { ifra['ifra_' + c.id] = $('ifra-' + c.id).value.trim(); });
+  return Object.assign({
+    name: $('f-name').value.trim(),
+    original: $('f-original').checked ? 'TRUE' : 'FALSE',
+    desc: $('f-desc').value.trim(),
+    top: $('f-top').value.trim(),
+    mid: $('f-mid').value.trim(),
+    base: $('f-base').value.trim(),
+    altnames: $('f-altnames').value.trim(),
+    vanillin: $('f-vanillin').value.trim(),
+    ethylvanillin: $('f-ethylvanillin').value.trim(),
+    flash: $('f-flash').value.trim(),
+    gravity: $('f-gravity').value.trim(),
+    color: $('f-color').value.trim(),
+    phthalate: $('f-phthalate').checked ? 'TRUE' : 'FALSE',
+    eo: $('f-eo').checked ? 'TRUE' : 'FALSE',
+    sds: $('f-sds').value.trim(),
+    ifracert: $('f-ifracert').value.trim(),
+    eu: $('f-eu').value.trim(),
+    c_load: $('c-load').value.trim(),
+    c_wax: $('c-wax').value.trim(),
+    c_space: $('c-space').value.trim(),
+    c_size: $('c-size').value.trim(),
+    c_burntime: $('c-burntime').value.trim(),
+    c_wick: $('c-wick').value.trim(),
+    c_cold: $('c-cold').value.trim(),
+    c_hot: $('c-hot').value.trim(),
+    c_notes: $('c-notes').value.trim(),
+    s_load: $('s-load').value.trim(),
+    s_lye: $('s-lye').value.trim(),
+    s_waterratio: $('s-waterratio').value.trim(),
+    s_sfat: $('s-sfat').value.trim(),
+    s_oiltemp: $('s-oiltemp').value.trim(),
+    s_vite: $('s-vite').value.trim(),
+    s_recipe: $('s-recipe').value.trim(),
+    s_accel: $('s-accel').value.trim(),
+    s_ricing: $('s-ricing').value.trim(),
+    s_discolor: $('s-discolor').value.trim(),
+    s_trace: $('s-trace').value.trim(),
+    s_scent: $('s-scent').value.trim(),
+    s_design: $('s-design').value.trim(),
+    s_notes: $('s-notes').value.trim(),
+  }, ifra);
+}
+
+function fillFields(d) {
+  $('f-name').value = d.name || '';
+  $('f-original').checked = d.original === 'TRUE';
+  $('f-desc').value = d.desc || '';
+  $('f-top').value = d.top || '';
+  $('f-mid').value = d.mid || '';
+  $('f-base').value = d.base || '';
+  $('f-altnames').value = d.altnames || '';
+  $('f-vanillin').value = d.vanillin || '';
+  $('f-ethylvanillin').value = d.ethylvanillin || '';
+  $('f-flash').value = d.flash || '';
+  $('f-gravity').value = d.gravity || '';
+  $('f-color').value = d.color || '';
+  $('f-phthalate').checked = d.phthalate !== 'FALSE';
+  $('f-eo').checked = d.eo === 'TRUE';
+  IFRA_CATS.forEach(function(c) { $('ifra-' + c.id).value = d['ifra_' + c.id] || ''; });
+  $('f-sds').value = d.sds || '';
+  $('f-ifracert').value = d.ifracert || '';
+  $('f-eu').value = d.eu || '';
+  $('c-load').value = d.c_load || '';
+  $('c-wax').value = d.c_wax || '';
+  $('c-space').value = d.c_space || '';
+  $('c-size').value = d.c_size || '';
+  $('c-burntime').value = d.c_burntime || '';
+  $('c-wick').value = d.c_wick || '';
+  $('c-cold').value = d.c_cold || '';
+  $('c-hot').value = d.c_hot || '';
+  $('c-notes').value = d.c_notes || '';
+  $('s-load').value = d.s_load || '';
+  $('s-lye').value = d.s_lye || '';
+  $('s-waterratio').value = d.s_waterratio || '';
+  $('s-sfat').value = d.s_sfat || '';
+  $('s-oiltemp').value = d.s_oiltemp || '';
+  $('s-vite').value = d.s_vite || '';
+  $('s-recipe').value = d.s_recipe || '';
+  $('s-accel').value = d.s_accel || '';
+  $('s-ricing').value = d.s_ricing || '';
+  $('s-discolor').value = d.s_discolor || '';
+  $('s-trace').value = d.s_trace || '';
+  $('s-scent').value = d.s_scent || '';
+  $('s-design').value = d.s_design || '';
+  $('s-notes').value = d.s_notes || '';
+  if (d.fill_line_photo) showPhotoLink('fill', d.fill_line_photo);
+  if (d.soap_test_photo) showPhotoLink('soap', d.soap_test_photo);
+}
+
+function showPhotoLink(type, url) {
+  const el = $(type + '-link');
+  el.innerHTML = '✓ <a href="' + url + '" target="_blank">View photo in Drive</a>';
+  el.style.display = 'block';
+}
+
+function clearForm() {
+  fillFields({phthalate:'TRUE'});
+  ['fill','soap'].forEach(function(t) {
+    $(t+'-link').style.display = 'none';
+    $(t+'-msg').style.display = 'none';
+  });
+  searchInput.value = '';
+  currentName = null;
+  $('btn-delete').style.display = 'none';
+  $('output-wrap').style.display = 'none';
+  setStatus('');
+}
+
+// ── Save ────────────────────────────────────────────────────
+async function saveOil() {
+  const d = getFields();
+  if (!d.name) { setStatus('⚠ Enter an oil name first.', 'err'); return; }
+  setStatus('Saving…');
+  try {
+    const r = await api({action:'save', data:JSON.stringify(d)});
+    if (r.success) {
+      currentName = d.name;
+      $('btn-delete').style.display = '';
+      // Refresh oil list
+      if (!allOilNames.includes(d.name)) {
+        allOilNames.push(d.name);
+        allOilNames.sort();
+      }
+      setStatus('✓ Saved: ' + d.name, 'ok');
+    } else {
+      setStatus('Save error: ' + (r.error || 'unknown'), 'err');
+    }
+  } catch(e) {
+    setStatus('Save failed: ' + e.message, 'err');
+  }
+}
+
+$('btn-save').addEventListener('click', saveOil);
+$('btn-save2').addEventListener('click', saveOil);
+$('btn-new').addEventListener('click', function() { clearForm(); setStatus('Ready for new oil.'); });
+$('btn-clear').addEventListener('click', clearForm);
+$('btn-delete').addEventListener('click', async function() {
+  if (!currentName || !confirm('Delete "' + currentName + '"?')) return;
+  try {
+    await api({action:'delete', name:currentName});
+    allOilNames = allOilNames.filter(function(n) { return n !== currentName; });
+    clearForm();
+    setStatus('Deleted.', 'ok');
+  } catch(e) {
+    setStatus('Delete failed: ' + e.message, 'err');
+  }
+});
+
+// ── Photo upload ────────────────────────────────────────────
+async function handlePhoto(file, type) {
+  const oilName = $('f-name').value.trim();
+  if (!oilName) { setStatus('⚠ Enter an oil name before uploading photos.', 'err'); return; }
+  const msgEl = $(type + '-msg');
+  const linkEl = $(type + '-link');
+  msgEl.textContent = 'Uploading…';
+  msgEl.style.display = 'block';
+  linkEl.style.display = 'none';
+  try {
+    const base64 = await new Promise(function(res, rej) {
+      const reader = new FileReader();
+      reader.onload = function() { res(reader.result.split(',')[1]); };
+      reader.onerror = function() { rej(new Error('Read failed')); };
+      reader.readAsDataURL(file);
+    });
+    const r = await api({
+      action: 'upload',
+      oilName: oilName,
+      photoType: type === 'fill' ? 'fill_line' : 'soap_testing',
+      fileName: file.name,
+      fileData: base64,
+      mimeType: file.type || 'image/jpeg'
+    });
+    msgEl.style.display = 'none';
+    if (r.success) { showPhotoLink(type, r.url); setStatus('✓ Photo uploaded', 'ok'); }
+    else { msgEl.textContent = 'Upload failed'; msgEl.style.display = 'block'; }
+  } catch(e) {
+    msgEl.textContent = 'Error: ' + e.message;
+    msgEl.style.display = 'block';
+  }
+}
+$('fill-photo').addEventListener('change', function(e) { if (e.target.files[0]) handlePhoto(e.target.files[0], 'fill'); });
+$('soap-photo').addEventListener('change', function(e) { if (e.target.files[0]) handlePhoto(e.target.files[0], 'soap'); });
+
+// ── HTML Generator ──────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function val(v, fallback) { return (v && v.trim()) ? v.trim() : (fallback || 'TBD'); }
+
+function generateHTML() {
+  const d = getFields();
+  if (!d.name) { setStatus('⚠ Enter an oil name first.', 'err'); return; }
+  const ls = 'color: rgb(198, 105, 77);';
+  const lsa = 'color: rgb(198, 105, 77); text-decoration: underline;';
+  let h = '';
+
+  // Scent Description
+  h += '<h5>Scent Description</h5>\n';
+  h += '<p>' + esc(val(d.desc, '')) + '</p>\n<p>&nbsp;</p>\n';
+  if (d.top || d.mid || d.base) {
+    h += '<p>';
+    if (d.top) h += '<strong>Top Notes:</strong> ' + esc(d.top) + '<br>';
+    if (d.mid) h += '<strong>Middle Notes:</strong> ' + esc(d.mid) + '<br>';
+    if (d.base) h += '<strong>Base Notes:</strong> ' + esc(d.base);
+    h += '</p>\n<p>&nbsp;</p>\n';
+  }
+  if (d.altnames) h += '<p><strong>Alternative naming ideas:</strong> ' + esc(d.altnames) + '<br><br><strong></strong></p>\n';
+  h += '<p><strong><span style="' + ls + '"><a href="https://midwestfragranceco.com/blogs/resources/naming-inspiration-scents" style="' + lsa + '" rel="noopener" target="_blank">Need naming inspiration? Visit our resource here!</a></span></strong></p>\n';
+  h += '<p>&nbsp;</p>\n';
+
+  // Fragrance Overview
+  h += '<h5>Fragrance Overview</h5>\n';
+  h += '<p><img src="https://cdn.shopify.com/s/files/1/0507/0487/5690/files/Phthalate_Free-2.png?v=1746730456" alt="Phthalate Free Icon" style="max-width: 303px; height: auto; display: inline-block;"></p>\n';
+  const cat9  = d.ifra_9  || '0.00';
+  const cat5a = d.ifra_5A || '0.00';
+  const cat5b = d.ifra_5B || '0.00';
+  const cat5c = d.ifra_5C || '0.00';
+  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Max use </strong></span><strong style="font-size: 0.875rem;">in soap:</strong><span style="font-size: 0.875rem;"> Category 9: ' + esc(cat9) + '%&nbsp;</span></p>\n';
+  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Max use in lotion:</strong> Category 5a: <span style="font-size: 0.875rem;">' + esc(cat5a) + '%&nbsp;</span> | Category 5b: <span style="font-size: 0.875rem;">' + esc(cat5b) + '%&nbsp;</span> | Category 5c: <span style="font-size: 0.875rem;">' + esc(cat5c) + '%&nbsp;</span></span></p>\n';
+  h += '<p><strong>Vanillin:</strong> <span style="font-size: 0.875rem;">' + esc(val(d.vanillin,'0.00')) + '%&nbsp;</span></p>\n';
+  h += '<p><strong>Ethyl Vanillin:</strong> ' + esc(val(d.ethylvanillin,'0.00')) + '%</p>\n';
+  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Flashpoint:</strong> ' + esc(val(d.flash,'TBD')) + 'ºF</span></p>\n';
+  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Specific Gravity:</strong>&nbsp;' + esc(val(d.gravity,'TBD')) + '</span></p>\n';
+  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>' + (d.eo === 'TRUE' ? 'Contains Essential Oils' : 'Contains NO Essential Oils') + '&nbsp;</strong></span></p>\n';
+  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Oil Color:&nbsp;</strong>' + esc(val(d.color,'TBD')) + '</span></p>\n';
+  h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><br>It is the responsibility of the customer to ensure the safety of the finished product containing this fragrance by conducting all necessary tests. <span>Further testing required for your own product safety.&nbsp;</span></p>\n';
+  h += '<p><span><br>All products are filled by weight not volume. Fill lines may vary.</span></p>\n';
+  h += '<p><br>Avoid direct contact with skin.</p>\n';
+
+  // Regulatory
+  h += '<h5><span>Regulatory (IFRA/SDS)&nbsp;</span></h5>\n';
+  if (d.sds)     h += '<p><a href="' + esc(d.sds) + '" style="' + lsa + '" target="_blank">Click here to view SDS</a></p>\n';
+  if (d.ifracert) h += '<p><a href="' + esc(d.ifracert) + '" style="' + lsa + '" target="_blank">Click here to view IFRA</a></p>\n';
+  if (d.eu)      h += '<p><span style="' + ls + '"><span style="text-decoration: underline;"><a style="' + lsa + '" href="' + esc(d.eu) + '" target="_blank">Click here to view EU Allergen</a></span></span></p>\n';
+  h += '<p><span style="text-decoration: underline; ' + ls + '"><a style="' + lsa + '" href="https://midwestfragranceco.com/pages/ifra-category-descriptions" target="_blank">IFRA Category Descriptions</a></span></p>\n';
+  h += '<p>&nbsp;</p>\n';
+  h += '<p>Disclaimer: The maximum usage rates listed are the ABSOLUTE maximum allowed&nbsp;%&nbsp;to be in compliance with IFRA standards. These are not suggested usage rates to be used in your products. Typical usage rates are much lower than these values. It is up to you to determine how much % will be needed for your specific product through your own testing process.&nbsp;</p>\n';
+
+  // Candle Testing
+  const cload  = val(d.c_load, '8%');
+  const cwax   = val(d.c_wax, 'Golden Wax 464');
+  const cspace = val(d.c_space, '60 sq ft');
+  const csize  = val(d.c_size, '8 oz');
+  const ctime  = val(d.c_burntime, '3 hours');
+  h += '<h5>Candle Testing Notes&nbsp;</h5>\n';
+  h += '<p><span>Tested at ' + esc(cload) + ' FO load, in ' + esc(cwax) + '. Test burned in a ' + esc(cspace) + ' space with a ' + esc(csize) + ' candle for ' + esc(ctime) + '. We recommend starting for candle testing at around 8% FO load and adjusting from here however, <span class="SS_gjA">please look at your specific wax to see their recommendations and test.</span></span></p>\n';
+  h += '<p>&nbsp;</p>\n';
+  h += '<p><strong>Cold Throw Notes:</strong> ' + esc(val(d.c_cold, '')) + '</p>\n';
+  h += '<p><strong><br>Hot Throw Notes:</strong> ' + esc(val(d.c_hot, '')) + '</p>\n';
+  if (d.c_notes) h += '<p>' + esc(d.c_notes) + '</p>\n';
+  h += '<p><br>Disclaimer: Test results are intended to be used as a guideline and are subjective. Results may vary based on individual recipes.&nbsp;</p>\n';
+
+  // Soap Testing
+  const sload  = val(d.s_load, '5%');
+  const slye   = val(d.s_lye, '30%');
+  const sratio = val(d.s_waterratio, '2.300:1');
+  const ssfat  = val(d.s_sfat, '5%');
+  const stemp  = val(d.s_oiltemp, '90');
+  const svite  = val(d.s_vite, '0.01%');
+  const recipeText = (d.s_recipe && d.s_recipe.trim())
+    ? esc(d.s_recipe)
+    : '33% organic and sustainable palm oil, 33% coconut oil, 16% Canola oil, 14.9% olive oil, 3% castor oil, and ' + svite + ' vitamin E oil';
+  h += '<h5>Cold Process Soap Testing Notes</h5>\n';
+  h += '<p><span>Tested at ' + esc(sload) + ' FO load with a recipe containing ' + esc(slye) + ' lye concentration (water:lye ratio ' + esc(sratio) + ') with ' + esc(ssfat) + ' superfat at ' + esc(stemp) + ' degrees. Recipe is ' + recipeText + '.&nbsp;</span></p>\n';
+  h += '<p>&nbsp;</p>\n';
+  h += '<p><strong>Acceleration: </strong>' + esc(val(d.s_accel,'TBD')) + '<span>&nbsp;| </span><strong>Ricing: </strong>' + esc(val(d.s_ricing,'TBD')) + '<span>&nbsp;| &nbsp;</span><strong>Discoloration: </strong>' + esc(val(d.s_discolor,'TBD')) + '<span>&nbsp; | </span><strong>Trace:</strong><b> </b>' + esc(val(d.s_trace,'TBD')) + '&nbsp;|<b> </b>&nbsp;<span><strong>Scent Retention: </strong>' + esc(val(d.s_scent,'TBD')) + '</span></p>\n';
+  h += '<p><span><strong><br>Design Notes:</strong> ' + esc(val(d.s_design,'TBD')) + '</span></p>\n';
+  if (d.s_notes) h += '<p>' + esc(d.s_notes) + '</p>\n';
+  h += '<p>&nbsp;</p>\n';
+  h += '<p><span>Disclaimer: Test results are intended to be used as a guideline. Results may vary based on individual recipes.&nbsp;</span></p>\n';
+  h += '<div><br></div>\n';
+
+  $('html-output').textContent = h;
+  $('output-wrap').style.display = 'block';
+  setStatus('✓ HTML generated for: ' + d.name, 'ok');
+  $('output-wrap').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+$('btn-generate').addEventListener('click', generateHTML);
+$('btn-copy').addEventListener('click', function() {
+  navigator.clipboard.writeText($('html-output').textContent)
+    .then(function() { setStatus('✓ Copied to clipboard!', 'ok'); })
+    .catch(function() { setStatus('Select and copy manually.'); });
+});
+</script>
+</body>
+</html>
