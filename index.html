@@ -913,19 +913,34 @@ $('btn-csv-cancel').addEventListener('click', function() {
 });
 
 // ── Similarity helpers ──────────────────────────────────────
-function normName(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function normName(s) { return String(s).toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(); }
+
+function wordSet(s) {
+  // Split into words, filter out short filler words
+  var stop = {'the':1,'a':1,'an':1,'and':1,'or':1,'of':1,'type':1,'fo':1};
+  return normName(s).split(/\s+/).filter(function(w) { return w.length > 1 && !stop[w]; });
+}
 
 function isSimilar(a, b) {
   var na = normName(a), nb = normName(b);
   if (na === nb) return false; // exact match handled separately
-  // One contains the other
+
+  // Must be at least 4 chars each to bother comparing
+  if (na.length < 4 || nb.length < 4) return false;
+
+  // One name fully contains the other (e.g. "Cashmere Cedar" vs "Cashmere Cedar FO")
   if (na.indexOf(nb) !== -1 || nb.indexOf(na) !== -1) return true;
-  // Share 80%+ of characters (simple overlap check)
-  var shorter = na.length < nb.length ? na : nb;
-  var longer  = na.length < nb.length ? nb : na;
-  var matches = 0;
-  shorter.split('').forEach(function(c) { if (longer.indexOf(c) !== -1) matches++; });
-  return (matches / longer.length) > 0.75;
+
+  // Word-level similarity: 60%+ of words in the shorter name appear in the longer
+  var wa = wordSet(a), wb = wordSet(b);
+  if (wa.length === 0 || wb.length === 0) return false;
+  var shorter = wa.length <= wb.length ? wa : wb;
+  var longer  = wa.length <= wb.length ? wb : wa;
+  // Need at least 2 matching words OR all words of a short name match
+  var matchCount = shorter.filter(function(w) { return longer.indexOf(w) !== -1; }).length;
+  var ratio = matchCount / shorter.length;
+  // Require high ratio AND minimum 2 matching words (avoids single-word false positives)
+  return ratio >= 0.6 && matchCount >= 2;
 }
 
 function findSimilar(csvName, sheetNames) {
