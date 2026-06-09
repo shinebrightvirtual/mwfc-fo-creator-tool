@@ -566,18 +566,25 @@ async function saveOil() {
   if (!d.name) { setStatus('⚠ Enter an oil name first.', 'err'); return; }
   setStatus('Saving…');
   try {
-    const r = await api({action:'save', data:JSON.stringify(d)});
-    if (r.success) {
+    // Split into two chunks to stay under URL length limits
+    const keys = Object.keys(d);
+    const mid = Math.ceil(keys.length / 2);
+    const chunk1 = {action:'saveChunk', chunk:'1', name:d.name};
+    const chunk2 = {action:'saveChunk', chunk:'2', name:d.name};
+    keys.forEach(function(k, i) {
+      if (i < mid) chunk1[k] = d[k];
+      else chunk2[k] = d[k];
+    });
+    const r1 = await api(chunk1);
+    if (!r1.ok && !r1.success) { setStatus('Save error (chunk 1): ' + (r1.error||'unknown'), 'err'); return; }
+    const r2 = await api(chunk2);
+    if (r2.success) {
       currentName = d.name;
       $('btn-delete').style.display = '';
-      // Refresh oil list
-      if (!allOilNames.includes(d.name)) {
-        allOilNames.push(d.name);
-        allOilNames.sort();
-      }
+      if (!allOilNames.includes(d.name)) { allOilNames.push(d.name); allOilNames.sort(); }
       setStatus('✓ Saved: ' + d.name, 'ok');
     } else {
-      setStatus('Save error: ' + (r.error || 'unknown'), 'err');
+      setStatus('Save error: ' + (r2.error || 'unknown'), 'err');
     }
   } catch(e) {
     setStatus('Save failed: ' + e.message, 'err');

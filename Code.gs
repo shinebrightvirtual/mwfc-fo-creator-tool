@@ -20,25 +20,28 @@ const COLUMNS = [
   "fill_line_photo","soap_test_photo"
 ];
 
+// Cache key prefix for chunked saves
+const CACHE_PREFIX = "mwfc_chunk1_";
+
 function doGet(e) {
   var result;
   try {
     var action = e && e.parameter && e.parameter.action ? e.parameter.action : null;
-    if      (action === "getAll")  result = getAllOils();
-    else if (action === "getOne")  result = getOneOil(e.parameter.name);
-    else if (action === "search")  result = searchOils(e.parameter.q);
-    else if (action === "save")    result = saveOil(JSON.parse(decodeURIComponent(e.parameter.data)));
-    else if (action === "delete")  result = deleteOil(e.parameter.name);
-    else if (action === "upload")  result = uploadPhoto(
+    if      (action === "getAll")     result = getAllOils();
+    else if (action === "getOne")     result = getOneOil(e.parameter.name);
+    else if (action === "search")     result = searchOils(e.parameter.q);
+    else if (action === "saveChunk")  result = saveChunk(e.parameter);
+    else if (action === "save")       result = saveOilDirect(e.parameter);
+    else if (action === "delete")     result = deleteOil(e.parameter.name);
+    else if (action === "upload")     result = uploadPhoto(
       e.parameter.oilName, e.parameter.photoType,
       e.parameter.fileName, e.parameter.fileData, e.parameter.mimeType
     );
-    else result = { ok: true, message: "MWFC FO Tool API running" };
+    else result = { ok: true, message: "MWFC FO Tool API" };
   } catch(err) {
     result = { error: err.toString() };
   }
 
-  // Use JSONP-style callback if provided, otherwise plain JSON
   var json = JSON.stringify(result);
   var cb = e && e.parameter && e.parameter.callback ? e.parameter.callback : null;
   if (cb) {
@@ -51,10 +54,86 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function doPost(e) {
-  return doGet(e);
+function doPost(e) { return doGet(e); }
+
+// ── Chunked save ─────────────────────────────────────────────
+// Chunk 1: store params in cache, return ok
+// Chunk 2: merge with cached chunk 1, write to sheet
+function saveChunk(params) {
+  var cache = CacheService.getScriptCache();
+  var name = params.name;
+  if (!name) return { error: "Missing name" };
+
+  if (params.chunk === "1") {
+    // Store chunk 1 in cache (expires in 10 mins)
+    var data = {};
+    Object.keys(params).forEach(function(k) {
+      if (k !== "action" && k !== "chunk" && k !== "callback") {
+        data[k] = params[k];
+      }
+    });
+    cache.put(CACHE_PREFIX + name, JSON.stringify(data), 600);
+    return { ok: true };
+  }
+
+  if (params.chunk === "2") {
+    // Get chunk 1 from cache
+    var cached = cache.get(CACHE_PREFIX + name);
+    var merged = cached ? JSON.parse(cached) : {};
+    // Merge chunk 2
+    Object.keys(params).forEach(function(k) {
+      if (k !== "action" && k !== "chunk" && k !== "callback") {
+        merged[k] = params[k];
+      }
+    });
+    cache.remove(CACHE_PREFIX + name);
+    return writeOilToSheet(merged);
+  }
+
+  return { error: "Invalid chunk number" };
 }
 
+// ── Direct save (fallback, for small payloads) ───────────────
+function saveOilDirect(params) {
+  var data = {};
+  Object.keys(params).forEach(function(k) {
+    if (k !== "action" && k !== "callback") data[k] = params[k];
+  });
+  return writeOilToSheet(data);
+}
+
+// ── Write oil to sheet ───────────────────────────────────────
+function writeOilToSheet(data) {
+  if (!data.name) return { error: "Missing oil name" };
+  var sheet = getOrCreateSheet();
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var nameIdx = headers.indexOf("name");
+  var existingRow = -1;
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][nameIdx]).toLowerCase() === String(data.name).toLowerCase()) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+  var existingObj = {};
+  if (existingRow > 0) {
+    headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - 1][i] || ""); });
+  }
+  var row = COLUMNS.map(function(col) {
+    if (data[col] !== undefined && data[col] !== null && String(data[col]) !== "") return data[col];
+    if (existingObj[col]) return existingObj[col];
+    return "";
+  });
+  if (existingRow > 0) {
+    sheet.getRange(existingRow, 1, 1, row.length).setValues([row]);
+  } else {
+    sheet.appendRow(row);
+  }
+  return { success: true, action: existingRow > 0 ? "updated" : "created" };
+}
+
+// ── Sheet helpers ────────────────────────────────────────────
 function getOrCreateSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
@@ -106,35 +185,6 @@ function searchOils(q) {
     .map(function(row) { return String(row[nameIdx]); })
     .filter(function(n) { return n && n.toLowerCase().indexOf(lower) !== -1; });
   return { names: names };
-}
-
-function saveOil(data) {
-  var sheet = getOrCreateSheet();
-  var allData = sheet.getDataRange().getValues();
-  var headers = allData[0];
-  var nameIdx = headers.indexOf("name");
-  var existingRow = -1;
-  for (var i = 1; i < allData.length; i++) {
-    if (String(allData[i][nameIdx]).toLowerCase() === String(data.name).toLowerCase()) {
-      existingRow = i + 1;
-      break;
-    }
-  }
-  var existingObj = {};
-  if (existingRow > 0) {
-    headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - 1][i] || ""); });
-  }
-  var row = COLUMNS.map(function(col) {
-    if (data[col] !== undefined && data[col] !== null && data[col] !== "") return data[col];
-    if (existingObj[col]) return existingObj[col];
-    return "";
-  });
-  if (existingRow > 0) {
-    sheet.getRange(existingRow, 1, 1, row.length).setValues([row]);
-  } else {
-    sheet.appendRow(row);
-  }
-  return { success: true, action: existingRow > 0 ? "updated" : "created" };
 }
 
 function deleteOil(name) {
