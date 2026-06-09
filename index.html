@@ -264,6 +264,27 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   <button class="btn" id="btn-clear">Clear form</button>
 </div>
 
+<!-- Similarity check modal -->
+<div id="merge-modal" style="display:none;position:fixed;inset:0;background:rgba(40,36,16,0.5);z-index:1000;display:none;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:24px;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:14px;font-weight:700;color:var(--black);margin-bottom:8px;">Similar oil name found</div>
+    <div style="font-size:13px;color:var(--mid);margin-bottom:16px;" id="merge-msg"></div>
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+      <div style="padding:10px 14px;background:var(--off-white);border-radius:6px;font-size:12px;">
+        <strong>CSV name:</strong> <span id="merge-csv-name" style="color:var(--terra);"></span>
+      </div>
+      <div style="padding:10px 14px;background:var(--off-white);border-radius:6px;font-size:12px;">
+        <strong>Sheet name:</strong> <span id="merge-sheet-name" style="color:var(--olive);"></span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="merge-btn-merge">Merge with existing</button>
+      <button class="btn" id="merge-btn-new">Import as new oil</button>
+      <button class="btn" id="merge-btn-skip" style="color:var(--mid);">Skip this row</button>
+    </div>
+  </div>
+</div>
+
 <div class="output-wrap" id="output-wrap" style="display:none;">
   <div class="output-head"><span>Generated HTML — ready to paste into Shopify</span><button class="btn" id="btn-copy">Copy</button></div>
   <div class="output-box" id="html-output"></div>
@@ -891,69 +912,137 @@ $('btn-csv-cancel').addEventListener('click', function() {
   setCsvStatus('');
 });
 
+// ── Similarity helpers ──────────────────────────────────────
+function normName(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+
+function isSimilar(a, b) {
+  var na = normName(a), nb = normName(b);
+  if (na === nb) return false; // exact match handled separately
+  // One contains the other
+  if (na.indexOf(nb) !== -1 || nb.indexOf(na) !== -1) return true;
+  // Share 80%+ of characters (simple overlap check)
+  var shorter = na.length < nb.length ? na : nb;
+  var longer  = na.length < nb.length ? nb : na;
+  var matches = 0;
+  shorter.split('').forEach(function(c) { if (longer.indexOf(c) !== -1) matches++; });
+  return (matches / longer.length) > 0.75;
+}
+
+function findSimilar(csvName, sheetNames) {
+  var exact = sheetNames.find(function(n) { return normName(n) === normName(csvName); });
+  if (exact) return { type: 'exact', match: exact };
+  var similar = sheetNames.find(function(n) { return isSimilar(csvName, n); });
+  if (similar) return { type: 'similar', match: similar };
+  return null;
+}
+
+// Modal promise helper
+function askMergeModal(csvName, sheetName) {
+  return new Promise(function(resolve) {
+    var modal = $('merge-modal');
+    $('merge-msg').textContent = 'This CSV row has a similar name to an oil already in your sheet. What would you like to do?';
+    $('merge-csv-name').textContent = csvName;
+    $('merge-sheet-name').textContent = sheetName;
+    modal.style.display = 'flex';
+    function cleanup(result) {
+      modal.style.display = 'none';
+      $('merge-btn-merge').removeEventListener('click', onMerge);
+      $('merge-btn-new').removeEventListener('click', onNew);
+      $('merge-btn-skip').removeEventListener('click', onSkip);
+      resolve(result);
+    }
+    function onMerge() { cleanup('merge'); }
+    function onNew()   { cleanup('new'); }
+    function onSkip()  { cleanup('skip'); }
+    $('merge-btn-merge').addEventListener('click', onMerge);
+    $('merge-btn-new').addEventListener('click', onNew);
+    $('merge-btn-skip').addEventListener('click', onSkip);
+  });
+}
+
+async function importOil(oilData, saveName, isMerge) {
+  var keys = Object.keys(oilData).filter(function(k) { return k !== 'name'; });
+  var mid = Math.ceil(keys.length / 2);
+  var chunk1 = {action:'saveChunk', chunk:'1', name:saveName};
+  var chunk2 = {action:'saveChunk', chunk:'2', name:saveName};
+  if (isMerge) { chunk1._merge = 'true'; chunk2._merge = 'true'; }
+  keys.forEach(function(k, idx) {
+    if (idx < mid) chunk1[k] = oilData[k];
+    else chunk2[k] = oilData[k];
+  });
+  await api(chunk1);
+  return await api(chunk2);
+}
+
 $('btn-csv-import').addEventListener('click', async function() {
   if (!csvRows.length) { setCsvStatus('No data to import', 'err'); return; }
 
-  // Build field mapping from selects
   var mapping = {};
   csvHeaders.forEach(function(h, i) {
     var sel = document.getElementById('csv-map-' + i);
     if (sel && sel.value !== 'skip') mapping[h] = sel.value;
   });
 
-  // Check that Oil Name is mapped
   var hasName = Object.values(mapping).indexOf('name') !== -1;
   if (!hasName) { setCsvStatus('⚠ You must map a column to "Oil Name" to import', 'err'); return; }
 
-  setCsvStatus('Importing 0 of ' + csvRows.length + '…');
-  $('btn-csv-import').disabled = true;
+  // Get current sheet names for similarity check
+  var sheetNames = [];
+  try {
+    var allR = await api({action:'getAll'});
+    if (allR.oils) sheetNames = allR.oils.map(function(o) { return o.name || ''; }).filter(Boolean);
+  } catch(e) {}
 
-  var success = 0, errors = 0;
+  $('btn-csv-import').disabled = true;
+  var success = 0, errors = 0, skipped = 0;
+
   for (var i = 0; i < csvRows.length; i++) {
     var csvRow = csvRows[i];
     var oilData = {};
-
-    // Map CSV columns to field keys
     Object.keys(mapping).forEach(function(csvCol) {
       var fieldKey = mapping[csvCol];
       var val = csvRow[csvCol] || '';
       if (val) oilData[fieldKey] = val;
     });
-
     if (!oilData.name) { errors++; continue; }
 
-    try {
-      // Use merge save — sends as two chunks
-      var keys = Object.keys(oilData).filter(function(k) { return k !== 'name'; });
-      var mid = Math.ceil(keys.length / 2);
-      var chunk1 = {action:'saveChunk', chunk:'1', name:oilData.name, _merge:'true'};
-      var chunk2 = {action:'saveChunk', chunk:'2', name:oilData.name, _merge:'true'};
-      keys.forEach(function(k, idx) {
-        if (idx < mid) chunk1[k] = oilData[k];
-        else chunk2[k] = oilData[k];
-      });
-      await api(chunk1);
-      var r = await api(chunk2);
-      if (r.success) success++;
-      else errors++;
-    } catch(e) {
-      errors++;
+    setCsvStatus('Checking ' + (i+1) + ' of ' + csvRows.length + ': ' + oilData.name + '…');
+
+    var found = findSimilar(oilData.name, sheetNames);
+    var saveName = oilData.name;
+    var doMerge = false;
+
+    if (found && found.type === 'exact') {
+      // Exact match — always merge
+      saveName = found.match;
+      doMerge = true;
+    } else if (found && found.type === 'similar') {
+      // Ask user
+      var decision = await askMergeModal(oilData.name, found.match);
+      if (decision === 'skip') { skipped++; continue; }
+      if (decision === 'merge') { saveName = found.match; doMerge = true; }
+      // 'new' = import as new with original name
     }
 
-    setCsvStatus('Importing ' + (i+1) + ' of ' + csvRows.length + '…');
+    try {
+      var r = await importOil(oilData, saveName, doMerge);
+      if (r.success) {
+        success++;
+        if (!sheetNames.includes(saveName)) sheetNames.push(saveName);
+      } else { errors++; }
+    } catch(e) { errors++; }
   }
 
   $('btn-csv-import').disabled = false;
 
-  // Refresh oil list
   api({action:'getAll'}).then(function(r) {
-    if (r.oils) {
-      var names = r.oils.map(function(o) { return o.name || ''; }).filter(Boolean);
-      populateDropdown(names);
-    }
+    if (r.oils) populateDropdown(r.oils.map(function(o) { return o.name || ''; }).filter(Boolean));
   }).catch(function(){});
 
-  setCsvStatus('✓ Done — ' + success + ' imported' + (errors ? ', ' + errors + ' skipped' : ''), 'ok');
+  var msg = '✓ Done — ' + success + ' imported';
+  if (skipped) msg += ', ' + skipped + ' skipped';
+  if (errors) msg += ', ' + errors + ' errors';
+  setCsvStatus(msg, 'ok');
   $('csv-mapping-wrap').style.display = 'none';
   $('csv-file-input').value = '';
   csvRows = []; csvHeaders = [];
