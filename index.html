@@ -913,7 +913,13 @@ $('btn-csv-cancel').addEventListener('click', function() {
 });
 
 // ── Similarity helpers ──────────────────────────────────────
-function normName(s) { return String(s).toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(); }
+function normName(s) {
+  return String(s).toLowerCase()
+    .replace(/\s*\(type\)\s*/gi, '')  // strip (type) suffix
+    .replace(/\s*type\s*$/gi, '')      // strip trailing "type"
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim();
+}
 
 function wordSet(s) {
   // Split into words, filter out short filler words
