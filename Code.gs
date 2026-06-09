@@ -152,11 +152,14 @@ function getAllOils() {
   var data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { oils: [], sheetUrl: ss.getUrl() };
   var headers = data[0];
-  var oils = data.slice(1).map(function(row) {
-    var obj = {};
-    headers.forEach(function(h, i) { obj[h] = row[i] !== undefined ? String(row[i]) : ""; });
-    return obj;
-  });
+  var nameIdx = headers.indexOf("name");
+  var oils = data.slice(1)
+    .filter(function(row) { return row[nameIdx] && String(row[nameIdx]).trim() !== ""; })
+    .map(function(row) {
+      var obj = {};
+      headers.forEach(function(h, i) { obj[h] = row[i] !== undefined ? String(row[i]) : ""; });
+      return obj;
+    });
   return { oils: oils, sheetUrl: ss.getUrl() };
 }
 

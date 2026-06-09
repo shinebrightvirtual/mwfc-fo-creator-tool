@@ -390,7 +390,7 @@ $('btn-connect').addEventListener('click', async function() {
 // ── Dropdown — all oil names ────────────────────────────────
 let allOilNames = [];
 function populateDropdown(names) {
-  allOilNames = names.sort();
+  allOilNames = names.filter(function(n) { return n && n.trim() !== ''; }).sort();
 }
 
 const searchInput = $('oil-search');
@@ -606,6 +606,11 @@ async function saveOil() {
       currentName = d.name;
       $('btn-delete').style.display = '';
       if (!allOilNames.includes(d.name)) { allOilNames.push(d.name); allOilNames.sort(); }
+      // Refresh dropdown from sheet
+      api({action:'getAll'}).then(function(r) {
+        if (r.oils) populateDropdown(r.oils.map(function(o) { return o.name; }));
+        if (r.sheetUrl) { showSheetLink(r.sheetUrl); localStorage.setItem('mwfc_sheet_url', r.sheetUrl); }
+      }).catch(function(){});
       setStatus('✓ Saved: ' + d.name, 'ok');
     } else {
       setStatus('Save error: ' + (r2.error || 'unknown'), 'err');
