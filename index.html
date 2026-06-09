@@ -105,7 +105,7 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   </div>
   <button class="btn" id="btn-new">+ New oil</button>
   <button class="btn btn-primary" id="btn-save">Save</button>
-  <button class="btn btn-danger" id="btn-delete" style="display:none;">Delete</button>
+
 </div>
 <div class="status" id="status-msg"></div>
 
@@ -425,7 +425,6 @@ searchResults.addEventListener('click', async function(e) {
     if (r.oil) {
       fillFields(r.oil);
       currentName = name;
-      $('btn-delete').style.display = '';
       setStatus('✓ Loaded: ' + name, 'ok');
     } else {
       setStatus('Not found in sheet', 'err');
@@ -574,7 +573,6 @@ function clearForm() {
   });
   searchInput.value = '';
   currentName = null;
-  $('btn-delete').style.display = 'none';
   $('output-wrap').style.display = 'none';
   setStatus('');
 }
@@ -606,7 +604,6 @@ async function saveOil() {
     const r2 = await api(chunk2);
     if (r2.success) {
       currentName = d.name;
-      $('btn-delete').style.display = '';
       if (!allOilNames.includes(d.name)) { allOilNames.push(d.name); allOilNames.sort(); }
       // Refresh dropdown from sheet
       api({action:'getAll'}).then(function(r) {
@@ -629,17 +626,7 @@ $('btn-save').addEventListener('click', saveOil);
 $('btn-save2').addEventListener('click', saveOil);
 $('btn-new').addEventListener('click', function() { clearForm(); setStatus('Ready for new oil.'); });
 $('btn-clear').addEventListener('click', clearForm);
-$('btn-delete').addEventListener('click', async function() {
-  if (!currentName || !confirm('Delete "' + currentName + '"?')) return;
-  try {
-    await api({action:'delete', name:currentName});
-    allOilNames = allOilNames.filter(function(n) { return n !== currentName; });
-    clearForm();
-    setStatus('Deleted.', 'ok');
-  } catch(e) {
-    setStatus('Delete failed: ' + e.message, 'err');
-  }
-});
+
 
 // ── Photo upload ────────────────────────────────────────────
 async function handlePhoto(file, type) {
