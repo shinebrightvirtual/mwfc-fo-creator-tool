@@ -167,9 +167,9 @@ function writeOilToSheet(data) {
   }
   // Apply checkbox validation to boolean columns
   var boolCols = ["Midwest Maker Signature Scent?", "Phthalate Free?", "Contains EOs?"];
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var sheetHeaders = getSheetHeaders(sheet);
   boolCols.forEach(function(colName) {
-    var colIdx = headers.indexOf(colName);
+    var colIdx = sheetHeaders.indexOf(colName);
     if (colIdx !== -1) {
       var cell = sheet.getRange(targetRow, colIdx + 1);
       var rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
@@ -183,16 +183,16 @@ function writeOilToSheet(data) {
 function debugSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = getOrCreateSheet();
-  var data = sheet.getDataRange().getValues();
-  var headers = data[0];
-  var firstRow = data.length > 1 ? data[1] : [];
+  var headers = getSheetHeaders(sheet);
+  var data = getSheetData(sheet);
   return {
     sheetName: sheet.getName(),
-    totalRows: data.length,
+    totalDataRows: data.length,
     headers: headers.slice(0, 5),
-    firstRowFirstFiveValues: firstRow.slice(0, 5),
+    firstDataRow: data.length > 0 ? data[0].slice(0, 5) : [],
     nameColIndex: headers.indexOf("Oil Name"),
-    colToKeySample: Object.keys(COL_TO_KEY).slice(0, 5)
+    headerRow: HEADER_ROW,
+    dataStartRow: DATA_START_ROW
   };
 }
 
@@ -244,14 +244,14 @@ function getAllOils() {
 
 function getOneOil(name) {
   var sheet = getOrCreateSheet();
-  var data = sheet.getDataRange().getValues();
-  var headers = data[0];
+  var headers = getSheetHeaders(sheet);
+  var data = getSheetData(sheet);
   var nameIdx = headers.indexOf("Oil Name");
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][nameIdx]).toLowerCase() === String(name).toLowerCase()) {
+  if (nameIdx === -1) nameIdx = headers.indexOf("name");
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][nameIdx] && String(data[i][nameIdx]).toLowerCase() === String(name).toLowerCase()) {
       var obj = {};
       headers.forEach(function(h, idx) {
-        // Return data keyed by field key so the tool form can read it
         var key = COL_TO_KEY[h] || h;
         obj[key] = data[i][idx] !== undefined ? String(data[i][idx]) : "";
       });
