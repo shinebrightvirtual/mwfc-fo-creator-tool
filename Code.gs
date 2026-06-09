@@ -63,6 +63,7 @@ function doGet(e) {
       e.parameter.oilName, e.parameter.photoType,
       e.parameter.fileName, e.parameter.fileData, e.parameter.mimeType
     );
+    else if (action === "debug") result = debugSheet();
     else result = { ok: true, message: "MWFC FO Tool API" };
   } catch(err) {
     result = { error: err.toString() };
@@ -177,6 +178,22 @@ function writeOilToSheet(data) {
 }
 
 // ── Sheet helpers ────────────────────────────────────────────
+function debugSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getOrCreateSheet();
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var firstRow = data.length > 1 ? data[1] : [];
+  return {
+    sheetName: sheet.getName(),
+    totalRows: data.length,
+    headers: headers.slice(0, 5),
+    firstRowFirstFiveValues: firstRow.slice(0, 5),
+    nameColIndex: headers.indexOf("Oil Name"),
+    colToKeySample: Object.keys(COL_TO_KEY).slice(0, 5)
+  };
+}
+
 function getOrCreateSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
