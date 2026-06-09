@@ -172,13 +172,13 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   <div class="card-head olive" data-target="s-candle">Candle Testing Notes <span>▾</span></div>
   <div class="card-body" id="s-candle">
     <div class="nested g3">
-      <div class="field"><label>FO load %</label><input type="text" id="c-load" placeholder="e.g. 8%"></div>
-      <div class="field"><label>Wax used</label><input type="text" id="c-wax" placeholder="e.g. Golden 464"></div>
-      <div class="field"><label>Burn space</label><input type="text" id="c-space" placeholder="e.g. 60 sq ft"></div>
+      <div class="field"><label>FO load %</label><input type="text" id="c-load" placeholder="8%"></div>
+      <div class="field"><label>Wax used</label><input type="text" id="c-wax" placeholder="Golden 464"></div>
+      <div class="field"><label>Burn space</label><input type="text" id="c-space" placeholder="60 sq ft"></div>
     </div>
     <div class="nested g3">
-      <div class="field"><label>Candle size</label><input type="text" id="c-size" placeholder="e.g. 8 oz"></div>
-      <div class="field"><label>Burn time</label><input type="text" id="c-burntime" placeholder="e.g. 3 hours"></div>
+      <div class="field"><label>Candle size</label><input type="text" id="c-size" placeholder="8 oz"></div>
+      <div class="field"><label>Burn time</label><input type="text" id="c-burntime" placeholder="3 hours"></div>
       <div class="field"><label>Wick(s)</label><input type="text" id="c-wick" placeholder="e.g. CD-18"></div>
     </div>
     <div class="nested g2">
@@ -204,14 +204,14 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   <div class="card-head blue" data-target="s-soap">Cold Process Soap Testing Notes <span>▾</span></div>
   <div class="card-body" id="s-soap">
     <div class="nested g3">
-      <div class="field"><label>FO load %</label><input type="text" id="s-load" placeholder="e.g. 5%"></div>
-      <div class="field"><label>Lye concentration %</label><input type="text" id="s-lye" placeholder="e.g. 30%"></div>
-      <div class="field"><label>Water:lye ratio</label><input type="text" id="s-waterratio" placeholder="e.g. 2.300:1"></div>
+      <div class="field"><label>FO load %</label><input type="text" id="s-load" placeholder="5%"></div>
+      <div class="field"><label>Lye concentration %</label><input type="text" id="s-lye" placeholder="30%"></div>
+      <div class="field"><label>Water:lye ratio</label><input type="text" id="s-waterratio" placeholder="2.300:1"></div>
     </div>
     <div class="nested g3">
-      <div class="field"><label>Superfat %</label><input type="text" id="s-sfat" placeholder="e.g. 5%"></div>
-      <div class="field"><label>Oil temp (°F)</label><input type="text" id="s-oiltemp" placeholder="e.g. 90"></div>
-      <div class="field"><label>Vitamin E %</label><input type="text" id="s-vite" placeholder="e.g. 0.01%"></div>
+      <div class="field"><label>Superfat %</label><input type="text" id="s-sfat" placeholder="5%"></div>
+      <div class="field"><label>Oil temp (°F)</label><input type="text" id="s-oiltemp" placeholder="90"></div>
+      <div class="field"><label>Vitamin E %</label><input type="text" id="s-vite" placeholder="0.01%"></div>
     </div>
     <div class="field"><label>Custom recipe (leave blank for standard)</label><input type="text" id="s-recipe" placeholder="Standard: 33% Palm, 33% Coconut, 16% Canola, 14.9% Olive, 3% Castor, 0.01% Vit E"></div>
     <div class="nested g3">
@@ -457,6 +457,20 @@ document.addEventListener('click', function(e) {
 // ── Fields ──────────────────────────────────────────────────
 let currentName = null;
 
+// Pre-fill candle and soap defaults on page load
+(function() {
+  var DEFAULTS = {
+    'c-load':'8%', 'c-wax':'Golden Wax 464', 'c-space':'60 sq ft',
+    'c-size':'8 oz', 'c-burntime':'3 hours',
+    's-load':'5%', 's-lye':'30%', 's-waterratio':'2.300:1',
+    's-sfat':'5%', 's-oiltemp':'90', 's-vite':'0.01%'
+  };
+  Object.keys(DEFAULTS).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && !el.value) el.value = DEFAULTS[id];
+  });
+})();
+
 function getFields() {
   const ifra = {};
   IFRA_CATS.forEach(function(c) {
@@ -526,21 +540,21 @@ function fillFields(d) {
   $('f-sds').value = d.sds || '';
   $('f-ifracert').value = d.ifracert || '';
   $('f-eu').value = d.eu || '';
-  $('c-load').value = d.c_load || '';
-  $('c-wax').value = d.c_wax || '';
-  $('c-space').value = d.c_space || '';
-  $('c-size').value = d.c_size || '';
-  $('c-burntime').value = d.c_burntime || '';
+  $('c-load').value = d.c_load || '8%';
+  $('c-wax').value = d.c_wax || 'Golden Wax 464';
+  $('c-space').value = d.c_space || '60 sq ft';
+  $('c-size').value = d.c_size || '8 oz';
+  $('c-burntime').value = d.c_burntime || '3 hours';
   $('c-wick').value = d.c_wick || '';
   $('c-cold').value = d.c_cold || '';
   $('c-hot').value = d.c_hot || '';
   $('c-notes').value = d.c_notes || '';
-  $('s-load').value = d.s_load || '';
-  $('s-lye').value = d.s_lye || '';
-  $('s-waterratio').value = d.s_waterratio || '';
-  $('s-sfat').value = d.s_sfat || '';
-  $('s-oiltemp').value = d.s_oiltemp || '';
-  $('s-vite').value = d.s_vite || '';
+  $('s-load').value = d.s_load || '5%';
+  $('s-lye').value = d.s_lye || '30%';
+  $('s-waterratio').value = d.s_waterratio || '2.300:1';
+  $('s-sfat').value = d.s_sfat || '5%';
+  $('s-oiltemp').value = d.s_oiltemp || '90';
+  $('s-vite').value = d.s_vite || '0.01%';
   $('s-recipe').value = d.s_recipe || '';
   $('s-accel').value = d.s_accel || '';
   $('s-ricing').value = d.s_ricing || '';
@@ -560,7 +574,11 @@ function showPhotoLink(type, url) {
 }
 
 function clearForm() {
-  fillFields({phthalate:'TRUE'});
+  fillFields({
+    phthalate:'TRUE',
+    c_load:'8%', c_wax:'Golden Wax 464', c_space:'60 sq ft', c_size:'8 oz', c_burntime:'3 hours',
+    s_load:'5%', s_lye:'30%', s_waterratio:'2.300:1', s_sfat:'5%', s_oiltemp:'90', s_vite:'0.01%'
+  });
   ['fill','soap'].forEach(function(t) {
     $(t+'-link').style.display = 'none';
     $(t+'-msg').style.display = 'none';
