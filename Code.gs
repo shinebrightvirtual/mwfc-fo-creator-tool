@@ -154,11 +154,25 @@ function writeOilToSheet(data) {
     if (existingObj[col] !== undefined && existingObj[col] !== "") return existingObj[col];
     return "";
   });
+  var targetRow;
   if (existingRow > 0) {
     sheet.getRange(existingRow, 1, 1, row.length).setValues([row]);
+    targetRow = existingRow;
   } else {
     sheet.appendRow(row);
+    targetRow = sheet.getLastRow();
   }
+  // Apply checkbox validation to boolean columns
+  var boolCols = ["Midwest Maker Signature Scent?", "Phthalate Free?", "Contains EOs?"];
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  boolCols.forEach(function(colName) {
+    var colIdx = headers.indexOf(colName);
+    if (colIdx !== -1) {
+      var cell = sheet.getRange(targetRow, colIdx + 1);
+      var rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+      cell.setDataValidation(rule);
+    }
+  });
   return { success: true, action: existingRow > 0 ? "updated" : "created" };
 }
 
