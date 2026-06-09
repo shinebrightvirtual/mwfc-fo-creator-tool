@@ -450,48 +450,53 @@ let currentName = null;
 
 function getFields() {
   const ifra = {};
-  IFRA_CATS.forEach(function(c) { ifra['ifra_' + c.id] = $('ifra-' + c.id).value.trim(); });
+  IFRA_CATS.forEach(function(c) {
+    var el = $('ifra-' + c.id);
+    ifra['ifra_' + c.id] = el ? el.value.trim() : '';
+  });
+  function r(id) { var el = $(id); return el ? el.value.trim() : ''; }
+  function chk(id) { var el = $(id); return el ? el.checked : false; }
   return Object.assign({
-    name: $('f-name').value.trim(),
-    original: $('f-original').checked ? 'TRUE' : 'FALSE',
-    desc: $('f-desc').value.trim(),
-    top: $('f-top').value.trim(),
-    mid: $('f-mid').value.trim(),
-    base: $('f-base').value.trim(),
-    altnames: $('f-altnames').value.trim(),
-    vanillin: $('f-vanillin').value.trim(),
-    ethylvanillin: $('f-ethylvanillin').value.trim(),
-    flash: $('f-flash').value.trim(),
-    gravity: $('f-gravity').value.trim(),
-    color: $('f-color').value.trim(),
-    phthalate: $('f-phthalate').checked ? 'TRUE' : 'FALSE',
-    eo: $('f-eo').checked ? 'TRUE' : 'FALSE',
-    sds: $('f-sds').value.trim(),
-    ifracert: $('f-ifracert').value.trim(),
-    eu: $('f-eu').value.trim(),
-    c_load: $('c-load').value.trim(),
-    c_wax: $('c-wax').value.trim(),
-    c_space: $('c-space').value.trim(),
-    c_size: $('c-size').value.trim(),
-    c_burntime: $('c-burntime').value.trim(),
-    c_wick: $('c-wick').value.trim(),
-    c_cold: $('c-cold').value.trim(),
-    c_hot: $('c-hot').value.trim(),
-    c_notes: $('c-notes').value.trim(),
-    s_load: $('s-load').value.trim(),
-    s_lye: $('s-lye').value.trim(),
-    s_waterratio: $('s-waterratio').value.trim(),
-    s_sfat: $('s-sfat').value.trim(),
-    s_oiltemp: $('s-oiltemp').value.trim(),
-    s_vite: $('s-vite').value.trim(),
-    s_recipe: $('s-recipe').value.trim(),
-    s_accel: $('s-accel').value.trim(),
-    s_ricing: $('s-ricing').value.trim(),
-    s_discolor: $('s-discolor').value.trim(),
-    s_trace: $('s-trace').value.trim(),
-    s_scent: $('s-scent').value.trim(),
-    s_design: $('s-design').value.trim(),
-    s_notes: $('s-notes').value.trim(),
+    name: r('f-name'),
+    original: chk('f-original') ? 'TRUE' : 'FALSE',
+    desc: r('f-desc'),
+    top: r('f-top'),
+    mid: r('f-mid'),
+    base: r('f-base'),
+    altnames: r('f-altnames'),
+    vanillin: r('f-vanillin'),
+    ethylvanillin: r('f-ethylvanillin'),
+    flash: r('f-flash'),
+    gravity: r('f-gravity'),
+    color: r('f-color'),
+    phthalate: chk('f-phthalate') ? 'TRUE' : 'FALSE',
+    eo: chk('f-eo') ? 'TRUE' : 'FALSE',
+    sds: r('f-sds'),
+    ifracert: r('f-ifracert'),
+    eu: r('f-eu'),
+    c_load: r('c-load'),
+    c_wax: r('c-wax'),
+    c_space: r('c-space'),
+    c_size: r('c-size'),
+    c_burntime: r('c-burntime'),
+    c_wick: r('c-wick'),
+    c_cold: r('c-cold'),
+    c_hot: r('c-hot'),
+    c_notes: r('c-notes'),
+    s_load: r('s-load'),
+    s_lye: r('s-lye'),
+    s_waterratio: r('s-waterratio'),
+    s_sfat: r('s-sfat'),
+    s_oiltemp: r('s-oiltemp'),
+    s_vite: r('s-vite'),
+    s_recipe: r('s-recipe'),
+    s_accel: r('s-accel'),
+    s_ricing: r('s-ricing'),
+    s_discolor: r('s-discolor'),
+    s_trace: r('s-trace'),
+    s_scent: r('s-scent'),
+    s_design: r('s-design'),
+    s_notes: r('s-notes'),
   }, ifra);
 }
 
@@ -562,18 +567,25 @@ function clearForm() {
 
 // ── Save ────────────────────────────────────────────────────
 async function saveOil() {
+  // Fallback: if f-name is empty but search bar has a value, use that
+  const nameField = $('f-name');
+  if (!nameField.value.trim() && $('oil-search').value.trim()) {
+    nameField.value = $('oil-search').value.trim();
+  }
   const d = getFields();
   if (!d.name) { setStatus('⚠ Enter an oil name first.', 'err'); return; }
   setStatus('Saving…');
   try {
     // Split into two chunks to stay under URL length limits
-    const keys = Object.keys(d);
+    const keys = Object.keys(d).filter(function(k) { return k !== 'name'; });
     const mid = Math.ceil(keys.length / 2);
     const chunk1 = {action:'saveChunk', chunk:'1', name:d.name};
     const chunk2 = {action:'saveChunk', chunk:'2', name:d.name};
     keys.forEach(function(k, i) {
-      if (i < mid) chunk1[k] = d[k];
-      else chunk2[k] = d[k];
+      // Encode values to handle special chars safely
+      const v = d[k] !== undefined && d[k] !== null ? String(d[k]) : '';
+      if (i < mid) chunk1[k] = v;
+      else chunk2[k] = v;
     });
     const r1 = await api(chunk1);
     if (!r1.ok && !r1.success) { setStatus('Save error (chunk 1): ' + (r1.error||'unknown'), 'err'); return; }
