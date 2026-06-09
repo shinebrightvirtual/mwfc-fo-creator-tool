@@ -133,20 +133,20 @@ function saveOilDirect(params) {
 function writeOilToSheet(data) {
   if (!data.name) return { error: "Missing oil name" };
   var sheet = getOrCreateSheet();
-  var allData = sheet.getDataRange().getValues();
-  var headers = allData[0];
+  var headers = getSheetHeaders(sheet);
+  var allData = getSheetData(sheet);
   var nameIdx = headers.indexOf("Oil Name");
   if (nameIdx === -1) nameIdx = headers.indexOf("name");
   var existingRow = -1;
-  for (var i = 1; i < allData.length; i++) {
-    if (String(allData[i][nameIdx]).toLowerCase() === String(data.name).toLowerCase()) {
-      existingRow = i + 1;
+  for (var i = 0; i < allData.length; i++) {
+    if (allData[i][nameIdx] && String(allData[i][nameIdx]).toLowerCase() === String(data.name).toLowerCase()) {
+      existingRow = DATA_START_ROW + i;
       break;
     }
   }
   var existingObj = {};
   if (existingRow > 0) {
-    headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - 1][i] || ""); });
+    headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - DATA_START_ROW][i] || ""); });
   }
   var row = COLUMNS.map(function(col) {
     var key = COL_TO_KEY[col] || col;
@@ -160,8 +160,10 @@ function writeOilToSheet(data) {
     sheet.getRange(existingRow, 1, 1, row.length).setValues([row]);
     targetRow = existingRow;
   } else {
-    sheet.appendRow(row);
-    targetRow = sheet.getLastRow();
+    // Find next empty row starting from DATA_START_ROW
+    var lastRow = sheet.getLastRow();
+    targetRow = lastRow + 1;
+    sheet.getRange(targetRow, 1, 1, row.length).setValues([row]);
   }
   // Apply checkbox validation to boolean columns
   var boolCols = ["Midwest Maker Signature Scent?", "Phthalate Free?", "Contains EOs?"];
@@ -194,27 +196,40 @@ function debugSheet() {
   };
 }
 
+// Row offsets for the styled sheet
+var HEADER_ROW = 3;  // Row 3 has the actual column headers
+var DATA_START_ROW = 4;  // Data starts at row 4
+
 function getOrCreateSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
-    sheet.getRange(1, 1, 1, COLUMNS.length).setFontWeight("bold");
-    sheet.setFrozenRows(1);
+    sheet.getRange(HEADER_ROW, 1, 1, COLUMNS.length).setValues([COLUMNS]);
+    sheet.getRange(HEADER_ROW, 1, 1, COLUMNS.length).setFontWeight("bold");
+    sheet.setFrozenRows(HEADER_ROW);
   }
   return sheet;
+}
+
+function getSheetHeaders(sheet) {
+  return sheet.getRange(HEADER_ROW, 1, 1, sheet.getLastColumn()).getValues()[0];
+}
+
+function getSheetData(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < DATA_START_ROW) return [];
+  return sheet.getRange(DATA_START_ROW, 1, lastRow - DATA_START_ROW + 1, sheet.getLastColumn()).getValues();
 }
 
 function getAllOils() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = getOrCreateSheet();
-  var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { oils: [], sheetUrl: ss.getUrl() };
-  var headers = data[0];
+  var headers = getSheetHeaders(sheet);
+  var data = getSheetData(sheet);
   var nameIdx = headers.indexOf("Oil Name");
   if (nameIdx === -1) nameIdx = headers.indexOf("name");
-  var oils = data.slice(1)
+  var oils = data
     .filter(function(row) { return row[nameIdx] && String(row[nameIdx]).trim() !== ""; })
     .map(function(row) {
       var obj = {};
@@ -248,13 +263,12 @@ function getOneOil(name) {
 
 function searchOils(q) {
   var sheet = getOrCreateSheet();
-  var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { names: [] };
-  var headers = data[0];
+  var headers = getSheetHeaders(sheet);
+  var data = getSheetData(sheet);
   var nameIdx = headers.indexOf("Oil Name");
   if (nameIdx === -1) nameIdx = headers.indexOf("name");
   var lower = q.toLowerCase();
-  var names = data.slice(1)
+  var names = data
     .map(function(row) { return String(row[nameIdx]); })
     .filter(function(n) { return n && n.trim() !== "" && n.toLowerCase().indexOf(lower) !== -1; });
   return { names: names };
@@ -262,13 +276,13 @@ function searchOils(q) {
 
 function deleteOil(name) {
   var sheet = getOrCreateSheet();
-  var data = sheet.getDataRange().getValues();
-  var headers = data[0];
+  var headers = getSheetHeaders(sheet);
+  var data = getSheetData(sheet);
   var nameIdx = headers.indexOf("Oil Name");
   if (nameIdx === -1) nameIdx = headers.indexOf("name");
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][nameIdx]).toLowerCase() === String(name).toLowerCase()) {
-      sheet.deleteRow(i + 1);
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][nameIdx] && String(data[i][nameIdx]).toLowerCase() === String(name).toLowerCase()) {
+      sheet.deleteRow(DATA_START_ROW + i);
       return { success: true };
     }
   }
@@ -288,15 +302,15 @@ function uploadPhoto(oilName, photoType, fileName, fileData, mimeType) {
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   var url = "https://drive.google.com/file/d/" + file.getId() + "/view";
   var sheet = getOrCreateSheet();
-  var allData = sheet.getDataRange().getValues();
-  var headers = allData[0];
+  var headers = getSheetHeaders(sheet);
+  var data = getSheetData(sheet);
   var nameIdx = headers.indexOf("Oil Name");
   if (nameIdx === -1) nameIdx = headers.indexOf("name");
   var colKey = photoType === "fill_line" ? "Fill Line Photo" : "Soap Test Photo";
   var colIdx = headers.indexOf(colKey);
-  for (var i = 1; i < allData.length; i++) {
-    if (allData[i][nameIdx] && String(allData[i][nameIdx]).toLowerCase() === String(oilName).toLowerCase()) {
-      sheet.getRange(i + 1, colIdx + 1).setValue(url);
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][nameIdx] && String(data[i][nameIdx]).toLowerCase() === String(oilName).toLowerCase()) {
+      sheet.getRange(DATA_START_ROW + i, colIdx + 1).setValue(url);
       break;
     }
   }
