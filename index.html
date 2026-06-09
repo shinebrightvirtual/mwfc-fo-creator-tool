@@ -252,6 +252,36 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
 const URL_STORAGE_KEY = 'mwfc_script_url';
 let SCRIPT_URL = localStorage.getItem(URL_STORAGE_KEY) || '';
 
+// ── JSONP helper (bypasses CORS for Apps Script) ────────────
+function api(params) {
+  return new Promise(function(resolve, reject) {
+    if (!SCRIPT_URL) { reject(new Error('Not connected — paste your Apps Script URL above')); return; }
+    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    const timeout = setTimeout(function() {
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('Request timed out'));
+    }, 15000);
+    window[cbName] = function(data) {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve(data);
+    };
+    const url = new URL(SCRIPT_URL);
+    Object.entries(params).forEach(function(kv) { url.searchParams.set(kv[0], kv[1]); });
+    url.searchParams.set('callback', cbName);
+    const script = document.createElement('script');
+    script.src = url.toString();
+    script.onerror = function() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      reject(new Error('Script load failed — check URL'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
 const IFRA_CATS = [
   {id:'1',  label:'Cat. 1 — Lip products'},
   {id:'2',  label:'Cat. 2 — Deodorant/antiperspirant'},
@@ -312,17 +342,7 @@ function setConnStatus(msg, type) {
   el.className = 'conn-status ' + (type || 'idle');
 }
 
-// ── API call via fetch ──────────────────────────────────────
-async function api(params) {
-  if (!SCRIPT_URL) throw new Error('Not connected — paste your Apps Script URL above');
-  const url = new URL(SCRIPT_URL);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const resp = await fetch(url.toString());
-  if (!resp.ok) throw new Error('HTTP ' + resp.status);
-  const text = await resp.text();
-  try { return JSON.parse(text); }
-  catch(e) { throw new Error('Bad response from server — check Script URL'); }
-}
+
 
 // ── Connect ─────────────────────────────────────────────────
 if (SCRIPT_URL) {

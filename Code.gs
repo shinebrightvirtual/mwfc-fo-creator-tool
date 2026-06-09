@@ -1,6 +1,5 @@
 // ============================================================
 // MWFC Fragrance Oil Listing Tool — Google Apps Script
-// Serves as data API only. UI lives on Vercel.
 // Deploy as Web App: Execute as Me, Access: Anyone
 // ============================================================
 
@@ -22,37 +21,38 @@ const COLUMNS = [
 ];
 
 function doGet(e) {
-  return handleRequest(e);
-}
-
-function doPost(e) {
-  return handleRequest(e);
-}
-
-function handleRequest(e) {
-  var output;
+  var result;
   try {
     var action = e && e.parameter && e.parameter.action ? e.parameter.action : null;
-    var result;
-
-    if (action === "getAll")        result = getAllOils();
-    else if (action === "getOne")   result = getOneOil(e.parameter.name);
-    else if (action === "search")   result = searchOils(e.parameter.q);
-    else if (action === "save")     result = saveOil(JSON.parse(e.parameter.data));
-    else if (action === "delete")   result = deleteOil(e.parameter.name);
-    else if (action === "upload")   result = uploadPhoto(
+    if      (action === "getAll")  result = getAllOils();
+    else if (action === "getOne")  result = getOneOil(e.parameter.name);
+    else if (action === "search")  result = searchOils(e.parameter.q);
+    else if (action === "save")    result = saveOil(JSON.parse(decodeURIComponent(e.parameter.data)));
+    else if (action === "delete")  result = deleteOil(e.parameter.name);
+    else if (action === "upload")  result = uploadPhoto(
       e.parameter.oilName, e.parameter.photoType,
       e.parameter.fileName, e.parameter.fileData, e.parameter.mimeType
     );
-    else result = { error: "Unknown action" };
-
-    output = ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
+    else result = { ok: true, message: "MWFC FO Tool API running" };
   } catch(err) {
-    output = ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    result = { error: err.toString() };
   }
-  return output;
+
+  // Use JSONP-style callback if provided, otherwise plain JSON
+  var json = JSON.stringify(result);
+  var cb = e && e.parameter && e.parameter.callback ? e.parameter.callback : null;
+  if (cb) {
+    return ContentService
+      .createTextOutput(cb + "(" + json + ")")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService
+    .createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  return doGet(e);
 }
 
 function getOrCreateSheet() {
@@ -104,7 +104,7 @@ function searchOils(q) {
   var lower = q.toLowerCase();
   var names = data.slice(1)
     .map(function(row) { return String(row[nameIdx]); })
-    .filter(function(n) { return n.toLowerCase().indexOf(lower) !== -1; });
+    .filter(function(n) { return n && n.toLowerCase().indexOf(lower) !== -1; });
   return { names: names };
 }
 
@@ -163,7 +163,6 @@ function uploadPhoto(oilName, photoType, fileName, fileData, mimeType) {
   var file = subFolder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   var url = "https://drive.google.com/file/d/" + file.getId() + "/view";
-  // Write URL back to sheet
   var sheet = getOrCreateSheet();
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0];
