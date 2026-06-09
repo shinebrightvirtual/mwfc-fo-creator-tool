@@ -147,16 +147,17 @@ function getOrCreateSheet() {
 }
 
 function getAllOils() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = getOrCreateSheet();
   var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { oils: [] };
+  if (data.length <= 1) return { oils: [], sheetUrl: ss.getUrl() };
   var headers = data[0];
   var oils = data.slice(1).map(function(row) {
     var obj = {};
     headers.forEach(function(h, i) { obj[h] = row[i] !== undefined ? String(row[i]) : ""; });
     return obj;
   });
-  return { oils: oils };
+  return { oils: oils, sheetUrl: ss.getUrl() };
 }
 
 function getOneOil(name) {
