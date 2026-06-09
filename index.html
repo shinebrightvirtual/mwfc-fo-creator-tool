@@ -914,11 +914,11 @@ $('btn-csv-cancel').addEventListener('click', function() {
 
 // ── Similarity helpers ──────────────────────────────────────
 function normName(s) {
-  return String(s).toLowerCase()
-    .replace(/\s*\(type\)\s*/gi, '')  // strip (type) suffix
-    .replace(/\s*type\s*$/gi, '')      // strip trailing "type"
-    .replace(/[^a-z0-9\s]/g, '')
-    .trim();
+  var n = String(s).toLowerCase();
+  n = n.replace(' (type)', '');
+  n = n.replace('(type)', '');
+  n = n.replace(/[^a-z0-9 ]/g, '');
+  return n.trim();
 }
 
 function wordSet(s) {
