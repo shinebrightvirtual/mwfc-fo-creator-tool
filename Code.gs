@@ -3,6 +3,7 @@
 // Deploy as Web App: Execute as Me, Access: Anyone
 // ============================================================
 
+const VERSION = "2.0.0";
 const SHEET_NAME = "Fragrance Oils";
 const FILL_LINES_FOLDER_ID = "1mzHh_1FW2yKGbkTlf-vMv9gG4UUvECqU";
 const SOAP_TESTING_FOLDER_ID = "1xRp_MhxRovGyyEFkDszfa4JX6zp7QAV_";
@@ -64,7 +65,7 @@ function doGet(e) {
       e.parameter.fileName, e.parameter.fileData, e.parameter.mimeType
     );
     else if (action === "debug") result = debugSheet();
-    else result = { ok: true, message: "MWFC FO Tool API" };
+    else result = { ok: true, message: "MWFC FO Tool API", version: VERSION };
   } catch(err) {
     result = { error: err.toString() };
   }
@@ -186,6 +187,7 @@ function debugSheet() {
   var headers = getSheetHeaders(sheet);
   var data = getSheetData(sheet);
   return {
+    version: VERSION,
     sheetName: sheet.getName(),
     totalDataRows: data.length,
     headers: headers.slice(0, 5),
