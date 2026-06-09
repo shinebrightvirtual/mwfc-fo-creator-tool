@@ -621,7 +621,10 @@ async function saveOil() {
       if (!allOilNames.includes(d.name)) { allOilNames.push(d.name); allOilNames.sort(); }
       // Refresh dropdown from sheet
       api({action:'getAll'}).then(function(r) {
-        if (r.oils) populateDropdown(r.oils.map(function(o) { return o.name; }));
+        if (r.oils) {
+          var names = r.oils.map(function(o) { return o.name || o['Oil Name'] || ''; }).filter(function(n){ return n.trim() !== ''; });
+          populateDropdown(names);
+        }
         if (r.sheetUrl) { showSheetLink(r.sheetUrl); localStorage.setItem('mwfc_sheet_url', r.sheetUrl); }
       }).catch(function(){});
       setStatus('✓ Saved: ' + d.name, 'ok');
