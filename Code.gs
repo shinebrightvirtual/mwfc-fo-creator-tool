@@ -150,28 +150,34 @@ function writeOilToSheet(data) {
     headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - DATA_START_ROW][i] || ""); });
   }
   var isMerge = data._merge === 'true' || data._merge === true;
-  var row = COLUMNS.map(function(col) {
+
+  // Determine target row
+  var targetRow;
+  if (existingRow > 0) {
+    targetRow = existingRow;
+  } else {
+    targetRow = sheet.getLastRow() + 1;
+  }
+
+  // Write each field by finding its column by NAME in the actual sheet headers
+  // This means column order in COLUMNS array doesn't matter — it always finds the right spot
+  COLUMNS.forEach(function(col) {
+    var colIdx = headers.indexOf(col);
+    if (colIdx === -1) return; // this column doesn't exist in the sheet, skip it
     var key = COL_TO_KEY[col] || col;
     var existing = existingObj[col] !== undefined && existingObj[col] !== "" ? existingObj[col] : "";
     var incoming = data[key] !== undefined && data[key] !== null && String(data[key]) !== "" ? String(data[key]) : "";
+    var writeVal;
     if (isMerge) {
-      // Merge mode: keep existing if it has a value, otherwise use incoming
-      return existing !== "" ? existing : incoming;
+      writeVal = existing !== "" ? existing : incoming;
     } else {
-      // Normal save: use incoming if provided, fall back to existing
-      return incoming !== "" ? incoming : existing;
+      writeVal = incoming !== "" ? incoming : existing;
+    }
+    // Only write if we have a value, or if updating existing row (to allow clearing)
+    if (writeVal !== "") {
+      sheet.getRange(targetRow, colIdx + 1).setValue(writeVal);
     }
   });
-  var targetRow;
-  if (existingRow > 0) {
-    sheet.getRange(existingRow, 1, 1, row.length).setValues([row]);
-    targetRow = existingRow;
-  } else {
-    // Find next empty row starting from DATA_START_ROW
-    var lastRow = sheet.getLastRow();
-    targetRow = lastRow + 1;
-    sheet.getRange(targetRow, 1, 1, row.length).setValues([row]);
-  }
   // Apply checkbox validation to boolean columns
   var boolCols = ["Midwest Maker Signature Scent?", "Phthalate Free?", "Contains EOs?"];
   var sheetHeaders = getSheetHeaders(sheet);
