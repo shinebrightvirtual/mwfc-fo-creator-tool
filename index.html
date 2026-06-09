@@ -194,9 +194,11 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
 <div class="card">
   <div class="card-head olive" data-target="s-fillphoto">Fill Line Photo <span>▾</span></div>
   <div class="card-body" id="s-fillphoto">
-    <div class="photo-area"><input type="file" id="fill-photo" accept="image/*"><div class="ph-label">📷 Click to upload fill line photo</div></div>
-    <div class="upload-msg" id="fill-msg" style="display:none;"></div>
-    <div class="photo-link" id="fill-link" style="display:none;"></div>
+    <div class="field">
+      <label>Google Drive link</label>
+      <input type="text" id="fill-photo-link-input" placeholder="Paste Google Drive share link here">
+    </div>
+    <div style="font-size:11px;color:var(--mid);line-height:1.6;">Upload the fill line photo to your <strong>Fill Lines</strong> folder in Drive, then paste the share link above. The link will be saved to the sheet.</div>
   </div>
 </div>
 
@@ -226,11 +228,10 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
     </div>
     <div class="field"><label>Design notes</label><input type="text" id="s-design" placeholder="TBD"></div>
     <div class="field"><label>Additional soap notes</label><textarea id="s-notes" rows="2"></textarea></div>
-    <div style="margin-top:4px;">
-      <div style="font-size:11px;color:var(--mid);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Soap Testing Photo</div>
-      <div class="photo-area"><input type="file" id="soap-photo" accept="image/*"><div class="ph-label">📷 Click to upload soap testing photo</div></div>
-      <div class="upload-msg" id="soap-msg" style="display:none;"></div>
-      <div class="photo-link" id="soap-link" style="display:none;"></div>
+    <div class="field" style="margin-top:4px;">
+      <label>Soap testing photo — Google Drive link</label>
+      <input type="text" id="soap-photo-link-input" placeholder="Paste Google Drive share link here">
+      <div style="font-size:11px;color:var(--mid);margin-top:4px;">Upload photo to the Soap Testing folder in Drive, then paste the share link above.</div>
     </div>
   </div>
 </div>
@@ -574,15 +575,13 @@ function fillFields(d) {
   $('s-scent').value = d.s_scent || '';
   $('s-design').value = d.s_design || '';
   $('s-notes').value = d.s_notes || '';
-  if (d.fill_line_photo) showPhotoLink('fill', d.fill_line_photo);
-  if (d.soap_test_photo) showPhotoLink('soap', d.soap_test_photo);
+  var fillInput = $('fill-photo-link-input');
+  if (fillInput) fillInput.value = d.fill_line_photo || '';
+  var soapInput = $('soap-photo-link-input');
+  if (soapInput) soapInput.value = d.soap_test_photo || '';
 }
 
-function showPhotoLink(type, url) {
-  const el = $(type + '-link');
-  el.innerHTML = '✓ <a href="' + url + '" target="_blank">View photo in Drive</a>';
-  el.style.display = 'block';
-}
+
 
 function clearForm() {
   fillFields({
@@ -651,40 +650,6 @@ $('btn-new').addEventListener('click', function() { clearForm(); setStatus('Read
 $('btn-clear').addEventListener('click', clearForm);
 
 
-// ── Photo upload ────────────────────────────────────────────
-async function handlePhoto(file, type) {
-  const oilName = $('f-name').value.trim();
-  if (!oilName) { setStatus('⚠ Enter an oil name before uploading photos.', 'err'); return; }
-  const msgEl = $(type + '-msg');
-  const linkEl = $(type + '-link');
-  msgEl.textContent = 'Uploading…';
-  msgEl.style.display = 'block';
-  linkEl.style.display = 'none';
-  try {
-    const base64 = await new Promise(function(res, rej) {
-      const reader = new FileReader();
-      reader.onload = function() { res(reader.result.split(',')[1]); };
-      reader.onerror = function() { rej(new Error('Read failed')); };
-      reader.readAsDataURL(file);
-    });
-    const r = await api({
-      action: 'upload',
-      oilName: oilName,
-      photoType: type === 'fill' ? 'fill_line' : 'soap_testing',
-      fileName: file.name,
-      fileData: base64,
-      mimeType: file.type || 'image/jpeg'
-    });
-    msgEl.style.display = 'none';
-    if (r.success) { showPhotoLink(type, r.url); setStatus('✓ Photo uploaded', 'ok'); }
-    else { msgEl.textContent = 'Upload failed'; msgEl.style.display = 'block'; }
-  } catch(e) {
-    msgEl.textContent = 'Error: ' + e.message;
-    msgEl.style.display = 'block';
-  }
-}
-$('fill-photo').addEventListener('change', function(e) { if (e.target.files[0]) handlePhoto(e.target.files[0], 'fill'); });
-$('soap-photo').addEventListener('change', function(e) { if (e.target.files[0]) handlePhoto(e.target.files[0], 'soap'); });
 
 // ── HTML Generator ──────────────────────────────────────────
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
