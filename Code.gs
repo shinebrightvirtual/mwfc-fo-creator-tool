@@ -149,12 +149,18 @@ function writeOilToSheet(data) {
   if (existingRow > 0) {
     headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - DATA_START_ROW][i] || ""); });
   }
+  var isMerge = data._merge === 'true' || data._merge === true;
   var row = COLUMNS.map(function(col) {
     var key = COL_TO_KEY[col] || col;
-    var val = data[key] !== undefined && data[key] !== null && String(data[key]) !== "" ? data[key] : "";
-    if (val !== "") return val;
-    if (existingObj[col] !== undefined && existingObj[col] !== "") return existingObj[col];
-    return "";
+    var existing = existingObj[col] !== undefined && existingObj[col] !== "" ? existingObj[col] : "";
+    var incoming = data[key] !== undefined && data[key] !== null && String(data[key]) !== "" ? String(data[key]) : "";
+    if (isMerge) {
+      // Merge mode: keep existing if it has a value, otherwise use incoming
+      return existing !== "" ? existing : incoming;
+    } else {
+      // Normal save: use incoming if provided, fall back to existing
+      return incoming !== "" ? incoming : existing;
+    }
   });
   var targetRow;
   if (existingRow > 0) {

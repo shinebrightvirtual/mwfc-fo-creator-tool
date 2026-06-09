@@ -234,6 +234,28 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   </div>
 </div>
 
+<!-- CSV Import -->
+<div class="card">
+  <div class="card-head peach" data-target="s-csv">CSV Import <span>▾</span></div>
+  <div class="card-body hidden" id="s-csv">
+    <p style="font-size:12px;color:var(--mid);line-height:1.6;">Upload a CSV exported from another Google Sheet. You'll map each column before importing. Existing oils will have blank fields filled in — existing data won't be overwritten.</p>
+    <div class="photo-area" id="csv-upload-area">
+      <input type="file" id="csv-file-input" accept=".csv,text/csv">
+      <div class="ph-label">📄 Click to upload CSV file</div>
+    </div>
+    <div id="csv-mapping-wrap" style="display:none;">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--mid);margin-bottom:10px;">Map CSV columns to sheet fields</div>
+      <div id="csv-mapping-grid" style="display:grid;gap:8px;"></div>
+      <div style="margin-top:12px;padding:10px 14px;background:var(--off-white);border-radius:6px;font-size:12px;color:var(--mid);" id="csv-preview-info"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-primary" id="btn-csv-import">Import to sheet</button>
+        <button class="btn" id="btn-csv-cancel">Cancel</button>
+      </div>
+    </div>
+    <div class="status" id="csv-status"></div>
+  </div>
+</div>
+
 <div class="actions">
   <button class="btn btn-primary" id="btn-generate">Generate HTML listing</button>
   <button class="btn" id="btn-save2">Save</button>
@@ -759,6 +781,218 @@ function generateHTML() {
   setStatus('✓ HTML generated for: ' + d.name, 'ok');
   $('output-wrap').scrollIntoView({behavior:'smooth', block:'start'});
 }
+
+// ── CSV Import ───────────────────────────────────────────────
+const SHEET_FIELDS = [
+  {key:'skip', label:'— Skip this column —'},
+  {key:'name', label:'Oil Name'},
+  {key:'original', label:'Midwest Maker Signature Scent?'},
+  {key:'desc', label:'Description'},
+  {key:'top', label:'Top Notes'},
+  {key:'mid', label:'Middle Notes'},
+  {key:'base', label:'Base Notes'},
+  {key:'altnames', label:'Alt Naming Ideas'},
+  {key:'vanillin', label:'Vanillin %'},
+  {key:'ethylvanillin', label:'Ethyl Vanillin %'},
+  {key:'flash', label:'Flashpoint (°F)'},
+  {key:'phthalate', label:'Phthalate Free?'},
+  {key:'eo', label:'Contains EOs?'},
+  {key:'ifra_1', label:'IFRA Cat 1'},{key:'ifra_2', label:'IFRA Cat 2'},
+  {key:'ifra_3', label:'IFRA Cat 3'},{key:'ifra_4', label:'IFRA Cat 4'},
+  {key:'ifra_5A', label:'IFRA Cat 5A'},{key:'ifra_5B', label:'IFRA Cat 5B'},
+  {key:'ifra_5C', label:'IFRA Cat 5C'},{key:'ifra_5D', label:'IFRA Cat 5D'},
+  {key:'ifra_6', label:'IFRA Cat 6'},{key:'ifra_7A', label:'IFRA Cat 7A'},
+  {key:'ifra_7B', label:'IFRA Cat 7B'},{key:'ifra_8', label:'IFRA Cat 8'},
+  {key:'ifra_9', label:'IFRA Cat 9'},{key:'ifra_10A', label:'IFRA Cat 10A'},
+  {key:'ifra_10B', label:'IFRA Cat 10B'},{key:'ifra_11A', label:'IFRA Cat 11A'},
+  {key:'ifra_11B', label:'IFRA Cat 11B'},{key:'ifra_12', label:'IFRA Cat 12'},
+  {key:'sds', label:'SDS Link'},{key:'ifracert', label:'IFRA Cert Link'},
+  {key:'eu', label:'EU Allergen Link'},
+  {key:'c_load', label:'Candle FO Load'},{key:'c_wax', label:'Wax Used'},
+  {key:'c_space', label:'Burn Space'},{key:'c_size', label:'Candle Size'},
+  {key:'c_burntime', label:'Burn Time'},{key:'c_wick', label:'Wick(s)'},
+  {key:'c_cold', label:'Cold Throw'},{key:'c_hot', label:'Hot Throw'},
+  {key:'c_notes', label:'Candle Notes'},{key:'fill_line_photo', label:'Fill Line Photo'},
+  {key:'s_load', label:'Soap FO Load'},{key:'s_lye', label:'Lye Concentration'},
+  {key:'s_waterratio', label:'Water:Lye Ratio'},{key:'s_sfat', label:'Superfat %'},
+  {key:'s_oiltemp', label:'Oil Temp'},{key:'s_vite', label:'Vitamin E %'},
+  {key:'s_recipe', label:'Soap Recipe'},{key:'s_accel', label:'Acceleration'},
+  {key:'s_ricing', label:'Ricing'},{key:'s_discolor', label:'Discoloration'},
+  {key:'s_trace', label:'Trace'},{key:'s_scent', label:'Scent Retention'},
+  {key:'s_design', label:'Design Notes'},{key:'s_notes', label:'Soap Notes'},
+  {key:'soap_test_photo', label:'Soap Test Photo'}
+];
+
+var csvRows = [];
+var csvHeaders = [];
+
+function parseCSV(text) {
+  var lines = text.split(/?
+/).filter(function(l) { return l.trim() !== ''; });
+  if (!lines.length) return { headers: [], rows: [] };
+  function parseLine(line) {
+    var result = [], cur = '', inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+  var headers = parseLine(lines[0]);
+  var rows = lines.slice(1).map(function(l) {
+    var vals = parseLine(l);
+    var obj = {};
+    headers.forEach(function(h, i) { obj[h] = vals[i] || ''; });
+    return obj;
+  });
+  return { headers: headers, rows: rows };
+}
+
+function autoMatch(csvHeader) {
+  var h = csvHeader.toLowerCase().trim();
+  // Try exact match first
+  for (var i = 0; i < SHEET_FIELDS.length; i++) {
+    if (SHEET_FIELDS[i].label.toLowerCase() === h) return SHEET_FIELDS[i].key;
+  }
+  // Try key match
+  for (var i = 0; i < SHEET_FIELDS.length; i++) {
+    if (SHEET_FIELDS[i].key.toLowerCase() === h) return SHEET_FIELDS[i].key;
+  }
+  // Fuzzy: contains
+  for (var i = 0; i < SHEET_FIELDS.length; i++) {
+    if (h.indexOf(SHEET_FIELDS[i].key.toLowerCase()) !== -1 ||
+        SHEET_FIELDS[i].label.toLowerCase().indexOf(h) !== -1) {
+      return SHEET_FIELDS[i].key;
+    }
+  }
+  return 'skip';
+}
+
+$('csv-file-input').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var parsed = parseCSV(ev.target.result);
+    if (!parsed.headers.length) {
+      setCsvStatus('Could not parse CSV — check the file format', 'err');
+      return;
+    }
+    csvHeaders = parsed.headers;
+    csvRows = parsed.rows;
+    buildMappingUI(csvHeaders, csvRows.length);
+  };
+  reader.readAsText(file);
+});
+
+function buildMappingUI(headers, rowCount) {
+  var grid = $('csv-mapping-grid');
+  grid.innerHTML = '';
+
+  // Build options HTML once
+  var optionsHtml = SHEET_FIELDS.map(function(f) {
+    return '<option value="' + f.key + '">' + f.label + '</option>';
+  }).join('');
+
+  headers.forEach(function(h, i) {
+    var matched = autoMatch(h);
+    var row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 20px 1fr;gap:8px;align-items:center;';
+    row.innerHTML =
+      '<div style="font-size:12px;padding:6px 10px;background:var(--off-white);border-radius:5px;border:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + h + '">' + h + '</div>' +
+      '<div style="text-align:center;color:var(--mid);font-size:14px;">→</div>' +
+      '<select id="csv-map-' + i + '" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:white;">' + optionsHtml + '</select>';
+    grid.appendChild(row);
+    document.getElementById('csv-map-' + i).value = matched;
+  });
+
+  $('csv-preview-info').textContent = rowCount + ' rows ready to import. Existing oils will have blank fields filled in — existing data preserved.';
+  $('csv-mapping-wrap').style.display = 'block';
+}
+
+function setCsvStatus(msg, type) {
+  var el = $('csv-status');
+  el.textContent = msg;
+  el.className = 'status ' + (type || '');
+}
+
+$('btn-csv-cancel').addEventListener('click', function() {
+  $('csv-mapping-wrap').style.display = 'none';
+  $('csv-file-input').value = '';
+  csvRows = []; csvHeaders = [];
+  setCsvStatus('');
+});
+
+$('btn-csv-import').addEventListener('click', async function() {
+  if (!csvRows.length) { setCsvStatus('No data to import', 'err'); return; }
+
+  // Build field mapping from selects
+  var mapping = {};
+  csvHeaders.forEach(function(h, i) {
+    var sel = document.getElementById('csv-map-' + i);
+    if (sel && sel.value !== 'skip') mapping[h] = sel.value;
+  });
+
+  // Check that Oil Name is mapped
+  var hasName = Object.values(mapping).indexOf('name') !== -1;
+  if (!hasName) { setCsvStatus('⚠ You must map a column to "Oil Name" to import', 'err'); return; }
+
+  setCsvStatus('Importing 0 of ' + csvRows.length + '…');
+  $('btn-csv-import').disabled = true;
+
+  var success = 0, errors = 0;
+  for (var i = 0; i < csvRows.length; i++) {
+    var csvRow = csvRows[i];
+    var oilData = {};
+
+    // Map CSV columns to field keys
+    Object.keys(mapping).forEach(function(csvCol) {
+      var fieldKey = mapping[csvCol];
+      var val = csvRow[csvCol] || '';
+      if (val) oilData[fieldKey] = val;
+    });
+
+    if (!oilData.name) { errors++; continue; }
+
+    try {
+      // Use merge save — sends as two chunks
+      var keys = Object.keys(oilData).filter(function(k) { return k !== 'name'; });
+      var mid = Math.ceil(keys.length / 2);
+      var chunk1 = {action:'saveChunk', chunk:'1', name:oilData.name, _merge:'true'};
+      var chunk2 = {action:'saveChunk', chunk:'2', name:oilData.name, _merge:'true'};
+      keys.forEach(function(k, idx) {
+        if (idx < mid) chunk1[k] = oilData[k];
+        else chunk2[k] = oilData[k];
+      });
+      await api(chunk1);
+      var r = await api(chunk2);
+      if (r.success) success++;
+      else errors++;
+    } catch(e) {
+      errors++;
+    }
+
+    setCsvStatus('Importing ' + (i+1) + ' of ' + csvRows.length + '…');
+  }
+
+  $('btn-csv-import').disabled = false;
+
+  // Refresh oil list
+  api({action:'getAll'}).then(function(r) {
+    if (r.oils) {
+      var names = r.oils.map(function(o) { return o.name || ''; }).filter(Boolean);
+      populateDropdown(names);
+    }
+  }).catch(function(){});
+
+  setCsvStatus('✓ Done — ' + success + ' imported' + (errors ? ', ' + errors + ' skipped' : ''), 'ok');
+  $('csv-mapping-wrap').style.display = 'none';
+  $('csv-file-input').value = '';
+  csvRows = []; csvHeaders = [];
+});
 
 $('btn-generate').addEventListener('click', generateHTML);
 $('btn-copy').addEventListener('click', function() {
