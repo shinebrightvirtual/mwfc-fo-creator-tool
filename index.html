@@ -828,9 +828,7 @@ var csvRows = [];
 var csvHeaders = [];
 
 function parseCSV(text) {
-  var lines = text.split(/
-?
-/).filter(function(l) { return l.trim() !== ''; });
+  var lines = text.split(/\r?\n/).filter(function(l) { return l.trim() !== ''; });
   if (!lines.length) return { headers: [], rows: [] };
   function parseLine(line) {
     var result = [], cur = '', inQ = false;
