@@ -869,6 +869,9 @@ $('csv-file-input').addEventListener('change', function(e) {
     }
     csvHeaders = parsed.headers;
     csvRows = parsed.rows;
+    // Debug: show first row data so we can verify mapping
+    console.log('CSV headers:', parsed.headers);
+    if (parsed.rows.length > 0) console.log('First row:', parsed.rows[0]);
     buildMappingUI(csvHeaders, csvRows.length);
   };
   reader.readAsText(file);
@@ -1025,6 +1028,7 @@ $('btn-csv-import').addEventListener('click', async function() {
       var val = csvRow[csvCol] || '';
       if (val) oilData[fieldKey] = val;
     });
+    if (i === 0) console.log('First oil mapped data:', JSON.stringify(oilData));
     if (!oilData.name) { errors++; continue; }
 
     setCsvStatus('Checking ' + (i+1) + ' of ' + csvRows.length + ': ' + oilData.name + '…');
