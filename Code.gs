@@ -10,7 +10,7 @@ const SOAP_TESTING_FOLDER_ID = "1xRp_MhxRovGyyEFkDszfa4JX6zp7QAV_";
 
 // Friendly display names — must match sheet header row exactly
 const COLUMNS = [
-  "Oil Name","Midwest Maker Signature Scent?","Description","Top Notes","Middle Notes","Base Notes","Alt Naming Ideas",
+  "Oil Name","Midwest Maker Signature Scent?","Type?","Description","Top Notes","Middle Notes","Base Notes","Alt Naming Ideas",
   "Vanillin %","Ethyl Vanillin %","Flashpoint (°F)","Phthalate Free?","Contains EOs?",
   "IFRA Cat 1","IFRA Cat 2","IFRA Cat 3","IFRA Cat 4","IFRA Cat 5A","IFRA Cat 5B","IFRA Cat 5C","IFRA Cat 5D",
   "IFRA Cat 6","IFRA Cat 7A","IFRA Cat 7B","IFRA Cat 8","IFRA Cat 9","IFRA Cat 10A","IFRA Cat 10B",
@@ -23,7 +23,7 @@ const COLUMNS = [
 
 // Map from tool field keys to friendly sheet column names
 const KEY_TO_COL = {
-  "name":"Oil Name","original":"Midwest Maker Signature Scent?","desc":"Description",
+  "name":"Oil Name","original":"Midwest Maker Signature Scent?","is_type":"Type?","desc":"Description",
   "top":"Top Notes","mid":"Middle Notes","base":"Base Notes","altnames":"Alt Naming Ideas",
   "vanillin":"Vanillin %","ethylvanillin":"Ethyl Vanillin %","flash":"Flashpoint (°F)",
   "phthalate":"Phthalate Free?","eo":"Contains EOs?","eolist":"Essential Oils List",

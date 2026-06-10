@@ -120,6 +120,7 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   <div class="card-body" id="s-identity">
     <div class="field"><label>Oil name</label><input type="text" id="f-name" placeholder="e.g. Cashmere Cedar"></div>
     <div class="toggle-row"><input type="checkbox" id="f-original"><label for="f-original">Midwest Maker Signature Scent</label></div>
+    <div class="toggle-row"><input type="checkbox" id="f-type"><label for="f-type">Type? (dupe — adds disclaimer to HTML)</label></div>
   </div>
 </div>
 
@@ -574,6 +575,7 @@ function getFields() {
 function fillFields(d) {
   $('f-name').value = d.name || '';
   $('f-original').checked = d.original === 'TRUE';
+  if ($('f-type')) $('f-type').checked = d.is_type === 'TRUE';
   $('f-desc').value = d.desc || '';
   $('f-top').value = d.top || '';
   $('f-mid').value = d.mid || '';
@@ -715,6 +717,10 @@ function generateHTML() {
   }
   if (d.altnames) h += '<p><strong>Alternative naming ideas:</strong> ' + esc(d.altnames) + '<br><br><strong></strong></p>\n';
   h += '<p><strong><span style="' + ls + '"><a href="https://midwestfragranceco.com/blogs/resources/naming-inspiration-scents" style="' + lsa + '" rel="noopener" target="_blank">Need naming inspiration? Visit our resource here!</a></span></strong></p>\n';
+  if (d.is_type === 'TRUE') {
+    h += '<p>&nbsp;</p>\n';
+    h += '<p><em>Disclaimer: At Midwest Fragrance Company (MWFC), we take great pride in offering our customers specialty fragrance oils designed to be used in their finished products. The fragrance oils are obtained through a combination of creation, modification, and occasional duplication of scents then produced by and purchased from our supplier. All references by MWFC to trademarked names or brands are clearly identified and intended only to better describe the aroma to purchasers. The references made do not infer any endorsement or affiliation between the trademark holder and MWFC, our product, or our website, and are intended to convey the greatest professional respect for said trademark holders.</em></p>\n';
+  }
   h += '<p>&nbsp;</p>\n';
 
   // Fragrance Overview
