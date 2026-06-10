@@ -150,6 +150,10 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
     <div class="nested g2">
       <div class="toggle-row"><input type="checkbox" id="f-phthalate" checked><label for="f-phthalate">Phthalate free</label></div>
       <div class="toggle-row"><input type="checkbox" id="f-eo"><label for="f-eo">Contains essential oils</label></div>
+    <div class="field" id="f-eo-list-wrap" style="display:none;">
+      <label>Essential oils included</label>
+      <input type="text" id="f-eolist" placeholder="e.g. Lavender, Eucalyptus, Peppermint">
+    </div>
     </div>
   </div>
 </div>
@@ -367,6 +371,12 @@ document.querySelectorAll('.card-head').forEach(function(h) {
   });
 });
 
+// Show/hide EO list field based on checkbox
+document.getElementById('f-eo').addEventListener('change', function() {
+  var wrap = document.getElementById('f-eo-list-wrap');
+  if (wrap) wrap.style.display = this.checked ? 'block' : 'none';
+});
+
 // ── Helpers ─────────────────────────────────────────────────
 function $(id) { return document.getElementById(id); }
 function showSheetLink(url) {
@@ -575,6 +585,9 @@ function fillFields(d) {
 
   $('f-phthalate').checked = d.phthalate !== 'FALSE';
   $('f-eo').checked = d.eo === 'TRUE';
+  var eoWrap = $('f-eo-list-wrap');
+  if (eoWrap) eoWrap.style.display = d.eo === 'TRUE' ? 'block' : 'none';
+  $('f-eolist') && ($('f-eolist').value = d.eolist || '');
   IFRA_CATS.forEach(function(c) { $('ifra-' + c.id).value = d['ifra_' + c.id] || ''; });
   $('f-sds').value = d.sds || '';
   $('f-ifracert').value = d.ifracert || '';
@@ -717,6 +730,7 @@ function generateHTML() {
   h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Flashpoint:</strong> ' + esc(val(d.flash,'TBD')) + 'ºF</span></p>\n';
 
   h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>' + (d.eo === 'TRUE' ? 'Contains Essential Oils' : 'Contains NO Essential Oils') + '&nbsp;</strong></span></p>\n';
+  if (d.eo === 'TRUE' && d.eolist) h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><span class="SS_gjA"><strong>Essential Oils:</strong> ' + esc(d.eolist) + '</span></p>\n';
 
   h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><br>It is the responsibility of the customer to ensure the safety of the finished product containing this fragrance by conducting all necessary tests. <span>Further testing required for your own product safety.&nbsp;</span></p>\n';
   h += '<p><span><br>All products are filled by weight not volume. Fill lines may vary.</span></p>\n';

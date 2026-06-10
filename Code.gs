@@ -26,7 +26,7 @@ const KEY_TO_COL = {
   "name":"Oil Name","original":"Midwest Maker Signature Scent?","desc":"Description",
   "top":"Top Notes","mid":"Middle Notes","base":"Base Notes","altnames":"Alt Naming Ideas",
   "vanillin":"Vanillin %","ethylvanillin":"Ethyl Vanillin %","flash":"Flashpoint (°F)",
-  "phthalate":"Phthalate Free?","eo":"Contains EOs?",
+  "phthalate":"Phthalate Free?","eo":"Contains EOs?","eolist":"Essential Oils List",
   "ifra_1":"IFRA Cat 1","ifra_2":"IFRA Cat 2","ifra_3":"IFRA Cat 3","ifra_4":"IFRA Cat 4",
   "ifra_5A":"IFRA Cat 5A","ifra_5B":"IFRA Cat 5B","ifra_5C":"IFRA Cat 5C","ifra_5D":"IFRA Cat 5D",
   "ifra_6":"IFRA Cat 6","ifra_7A":"IFRA Cat 7A","ifra_7B":"IFRA Cat 7B","ifra_8":"IFRA Cat 8",
