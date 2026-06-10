@@ -636,6 +636,7 @@ function clearForm() {
   searchInput.value = '';
   currentName = null;
   $('output-wrap').style.display = 'none';
+  $('html-output').textContent = '';
   setStatus('');
 }
 
@@ -787,6 +788,12 @@ function generateHTML() {
   $('output-wrap').style.display = 'block';
   setStatus('✓ HTML generated for: ' + d.name, 'ok');
   $('output-wrap').scrollIntoView({behavior:'smooth', block:'start'});
+  // Prompt to save if not already saved
+  setTimeout(function() {
+    if (confirm('HTML generated! Would you like to save this oil to the sheet now?')) {
+      saveOil();
+    }
+  }, 400);
 }
 
 // ── CSV Import ───────────────────────────────────────────────
