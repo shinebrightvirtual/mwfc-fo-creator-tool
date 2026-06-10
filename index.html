@@ -152,7 +152,7 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
     </div>
 
     <div class="nested g2">
-      <div class="toggle-row"><input type="checkbox" id="f-phthalate" checked><label for="f-phthalate">Phthalate free</label></div>
+
       <div class="toggle-row"><input type="checkbox" id="f-eo"><label for="f-eo">Contains essential oils</label></div>
     <div class="field" id="f-eo-list-wrap" style="display:none;">
       <label>Essential oils included</label>
@@ -594,7 +594,7 @@ function fillFields(d) {
   $('f-ethylvanillin').value = d.ethylvanillin || '';
   $('f-flash').value = d.flash || '';
 
-  $('f-phthalate').checked = d.phthalate !== 'FALSE' && d.phthalate !== false && d.phthalate !== 'false';
+
   $('f-eo').checked = d.eo === 'TRUE' || d.eo === true || d.eo === 'true';
   var eoWrap = $('f-eo-list-wrap');
   if (eoWrap) eoWrap.style.display = d.eo === 'TRUE' ? 'block' : 'none';
