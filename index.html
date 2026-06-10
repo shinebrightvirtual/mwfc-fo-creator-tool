@@ -119,8 +119,10 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   <div class="card-head terra" data-target="s-identity">Identity <span>▾</span></div>
   <div class="card-body" id="s-identity">
     <div class="field"><label>Oil name</label><input type="text" id="f-name" placeholder="e.g. Cashmere Cedar"></div>
-    <div class="toggle-row"><input type="checkbox" id="f-original"><label for="f-original">Midwest Maker Signature Scent</label></div>
-    <div class="toggle-row"><input type="checkbox" id="f-type"><label for="f-type">Type? (dupe — adds disclaimer to HTML)</label></div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;padding-top:8px;">
+      <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-original"><label for="f-original">Midwest Maker Signature Scent</label></div>
+      <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-type"><label for="f-type">Type? (dupe)</label></div>
+    </div>
   </div>
 </div>
 
