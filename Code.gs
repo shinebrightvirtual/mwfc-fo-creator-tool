@@ -249,7 +249,11 @@ function getAllOils() {
       var obj = {};
       headers.forEach(function(h, i) {
         var key = COL_TO_KEY[h] || h;
-        obj[key] = row[i] !== undefined ? String(row[i]) : "";
+        var cellVal = row[i];
+        // Convert boolean checkboxes to TRUE/FALSE strings
+        if (cellVal === true) cellVal = 'TRUE';
+        else if (cellVal === false) cellVal = 'FALSE';
+        obj[key] = cellVal !== undefined && cellVal !== null ? String(cellVal) : "";
       });
       return obj;
     });

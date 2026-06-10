@@ -576,8 +576,8 @@ function getFields() {
 
 function fillFields(d) {
   $('f-name').value = d.name || '';
-  $('f-original').checked = d.original === 'TRUE';
-  if ($('f-type')) $('f-type').checked = d.is_type === 'TRUE';
+  $('f-original').checked = d.original === 'TRUE' || d.original === true || d.original === 'true';
+  if ($('f-type')) $('f-type').checked = d.is_type === 'TRUE' || d.is_type === true || d.is_type === 'true';
   $('f-desc').value = d.desc || '';
   $('f-top').value = d.top || '';
   $('f-mid').value = d.mid || '';
@@ -587,8 +587,8 @@ function fillFields(d) {
   $('f-ethylvanillin').value = d.ethylvanillin || '';
   $('f-flash').value = d.flash || '';
 
-  $('f-phthalate').checked = d.phthalate !== 'FALSE';
-  $('f-eo').checked = d.eo === 'TRUE';
+  $('f-phthalate').checked = d.phthalate !== 'FALSE' && d.phthalate !== false && d.phthalate !== 'false';
+  $('f-eo').checked = d.eo === 'TRUE' || d.eo === true || d.eo === 'true';
   var eoWrap = $('f-eo-list-wrap');
   if (eoWrap) eoWrap.style.display = d.eo === 'TRUE' ? 'block' : 'none';
   $('f-eolist') && ($('f-eolist').value = d.eolist || '');
