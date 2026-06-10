@@ -296,6 +296,12 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   </div>
 </div>
 
+<div id="save-prompt" style="display:none;align-items:center;gap:12px;padding:10px 14px;background:var(--terra-light);border-radius:8px;margin-top:12px;font-size:13px;color:var(--black);">
+  <span>Want to save this oil to the sheet?</span>
+  <button class="btn btn-primary" id="save-prompt-yes" style="padding:6px 14px;font-size:12px;">Save now</button>
+  <button class="btn" id="save-prompt-no" style="padding:6px 14px;font-size:12px;color:var(--mid);">Not yet</button>
+</div>
+
 <div class="output-wrap" id="output-wrap" style="display:none;">
   <div class="output-head"><span>Generated HTML — ready to paste into Shopify</span><button class="btn" id="btn-copy">Copy</button></div>
   <div class="output-box" id="html-output"></div>
@@ -641,6 +647,7 @@ function clearForm() {
   currentName = null;
   $('output-wrap').style.display = 'none';
   $('html-output').textContent = '';
+  if ($('save-prompt')) $('save-prompt').style.display = 'none';
   setStatus('');
 }
 
@@ -796,12 +803,9 @@ function generateHTML() {
   $('output-wrap').style.display = 'block';
   setStatus('✓ HTML generated for: ' + d.name, 'ok');
   $('output-wrap').scrollIntoView({behavior:'smooth', block:'start'});
-  // Prompt to save if not already saved
-  setTimeout(function() {
-    if (confirm('HTML generated! Would you like to save this oil to the sheet now?')) {
-      saveOil();
-    }
-  }, 400);
+  // Show gentle save prompt below the output
+  var savePrompt = $('save-prompt');
+  if (savePrompt) savePrompt.style.display = 'flex';
 }
 
 // ── CSV Import ───────────────────────────────────────────────
@@ -1109,6 +1113,14 @@ $('btn-csv-import').addEventListener('click', async function() {
 });
 
 $('btn-generate').addEventListener('click', generateHTML);
+
+$('save-prompt-yes') && $('save-prompt-yes').addEventListener('click', function() {
+  $('save-prompt').style.display = 'none';
+  saveOil();
+});
+$('save-prompt-no') && $('save-prompt-no').addEventListener('click', function() {
+  $('save-prompt').style.display = 'none';
+});
 $('btn-copy').addEventListener('click', function() {
   navigator.clipboard.writeText($('html-output').textContent)
     .then(function() { setStatus('✓ Copied to clipboard!', 'ok'); })
