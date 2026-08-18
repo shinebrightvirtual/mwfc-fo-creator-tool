@@ -179,7 +179,7 @@ function writeOilToSheet(data) {
     }
   });
   // Apply checkbox validation to boolean columns
-  var boolCols = ["Midwest Maker Signature Scent?", "Phthalate Free?", "Contains EOs?"];
+  var boolCols = ["Midwest Maker Signature Scent?", "Type?", "Phthalate Free?", "Contains EOs?"];
   var sheetHeaders = getSheetHeaders(sheet);
   boolCols.forEach(function(colName) {
     var colIdx = sheetHeaders.indexOf(colName);

@@ -539,6 +539,7 @@ function getFields() {
   return Object.assign({
     name: r('f-name'),
     original: chk('f-original') ? 'TRUE' : 'FALSE',
+    is_type: chk('f-type') ? 'TRUE' : 'FALSE',
     desc: r('f-desc'),
     top: r('f-top'),
     mid: r('f-mid'),
