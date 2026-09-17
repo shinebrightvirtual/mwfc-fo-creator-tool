@@ -133,6 +133,10 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
   <div class="card-head peach" data-target="s-desc">Scent Description <span>▾</span></div>
   <div class="card-body" id="s-desc">
     <div class="field"><label>Description paragraph</label><textarea id="f-desc" rows="4" placeholder="The main story/mood paragraph…"></textarea></div>
+    <div class="field" id="f-compareto-wrap" style="display:none;">
+      <label>Compare aroma to</label>
+      <input type="text" id="f-compareto" placeholder="e.g. Volcano by Capri Blue (no ® needed — added automatically)">
+    </div>
     <div class="nested g3">
       <div class="field"><label>Top notes</label><input type="text" id="f-top" placeholder="e.g. Vanilla Sugar"></div>
       <div class="field"><label>Middle notes</label><input type="text" id="f-mid" placeholder="e.g. Rose, Jasmine"></div>
@@ -404,6 +408,12 @@ document.getElementById('f-eo').addEventListener('change', function() {
   if (wrap) wrap.style.display = this.checked ? 'block' : 'none';
 });
 
+// Show/hide "Compare aroma to" field based on Type? checkbox
+document.getElementById('f-type').addEventListener('change', function() {
+  var wrap = document.getElementById('f-compareto-wrap');
+  if (wrap) wrap.style.display = this.checked ? 'block' : 'none';
+});
+
 // ── Helpers ─────────────────────────────────────────────────
 function $(id) { return document.getElementById(id); }
 function showSheetLink(url) {
@@ -605,6 +615,9 @@ function fillFields(d) {
   $('f-name').value = d.name || '';
   $('f-original').checked = d.original === 'TRUE' || d.original === true || d.original === 'true';
   if ($('f-type')) $('f-type').checked = d.is_type === 'TRUE' || d.is_type === true || d.is_type === 'true';
+  var compareToWrap = $('f-compareto-wrap');
+  if (compareToWrap) compareToWrap.style.display = ($('f-type') && $('f-type').checked) ? 'block' : 'none';
+  if ($('f-compareto')) $('f-compareto').value = '';
   if ($('f-renamed')) {
     var renamedVal = d.renamed !== undefined ? d.renamed : d['Renamed?'];
     $('f-renamed').checked = renamedVal === 'TRUE' || renamedVal === true || renamedVal === 'true';
@@ -734,6 +747,15 @@ $('btn-clear').addEventListener('click', clearForm);
 // ── HTML Generator ──────────────────────────────────────────
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function val(v, fallback) { return (v && v.trim()) ? v.trim() : (fallback || 'TBD'); }
+// Splits on "by" (e.g. "Volcano by Capri Blue") and appends a registered
+// trademark symbol to each name so the person never has to type ® themselves.
+function formatCompareTo(s) {
+  if (!s) return '';
+  return s.split(/\s+by\s+/i).map(function(part) {
+    part = part.trim();
+    return part ? esc(part) + '&reg;' : '';
+  }).filter(function(p) { return p; }).join(' by ');
+}
 
 function generateHTML() {
   const d = getFields();
@@ -743,8 +765,11 @@ function generateHTML() {
   let h = '';
 
   // Scent Description
+  const compareTo = $('f-compareto') ? $('f-compareto').value.trim() : '';
   h += '<h5>Scent Description</h5>\n';
-  h += '<p>' + esc(val(d.desc, '')) + '</p>\n<p>&nbsp;</p>\n';
+  h += '<p>' + esc(val(d.desc, ''));
+  if (compareTo) h += '<br><strong>Compare aroma to ' + formatCompareTo(compareTo) + '.</strong>';
+  h += '</p>\n<p>&nbsp;</p>\n';
   if (d.top || d.mid || d.base) {
     h += '<p>';
     if (d.top) h += '<strong>Top Notes:</strong> ' + esc(d.top) + '<br>';
