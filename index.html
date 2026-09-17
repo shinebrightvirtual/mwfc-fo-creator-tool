@@ -93,7 +93,7 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
 <!-- Script URL config -->
 <div style="font-size:12px;color:var(--mid);margin-bottom:6px;">
   Copy and paste this URL into the box below to connect: 
-  <span style="font-family:monospace;font-size:11px;color:var(--black);user-select:all;">https://script.google.com/macros/s/AKfycbwbw1BbbomvrSVUJbRHSjLXOOtY38pi3Gz__BVU0Poc8HdV2iUyjDIhjBu1UwA1KthobQ/exec</span>
+  <span style="font-family:monospace;font-size:11px;color:var(--black);user-select:all;">https://script.google.com/macros/s/AKfycbyoMir68kL0WbALkiHcAwoMOKQIFCcfqWJUsshl1QePtfkP35SQ1KRY3-znb3vZl-Dg/exec</span>
 </div>
 <div class="config-bar">
   <label>Apps Script URL</label>
@@ -123,10 +123,7 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
     <div style="display:flex;gap:24px;flex-wrap:wrap;padding-top:8px;">
       <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-original"><label for="f-original">Midwest Maker Signature Scent</label></div>
       <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-type"><label for="f-type">Type? (dupe)</label></div>
-    </div>
-    <div id="renamed-badge" style="display:none;align-items:center;gap:8px;padding-top:10px;">
-      <input type="checkbox" id="f-renamed" checked disabled>
-      <label for="f-renamed" style="color:var(--terra);">Renamed <span id="renamed-badge-text"></span></label>
+      <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-renamed"><label for="f-renamed">Renamed <span id="renamed-hint" style="color:var(--mid);font-weight:400;"></span></label></div>
     </div>
   </div>
 </div>
@@ -560,6 +557,7 @@ function getFields() {
     name: r('f-name'),
     original: chk('f-original') ? 'TRUE' : 'FALSE',
     is_type: chk('f-type') ? 'TRUE' : 'FALSE',
+    renamed: chk('f-renamed') ? 'TRUE' : 'FALSE',
     desc: r('f-desc'),
     top: r('f-top'),
     mid: r('f-mid'),
@@ -607,12 +605,12 @@ function fillFields(d) {
   $('f-name').value = d.name || '';
   $('f-original').checked = d.original === 'TRUE' || d.original === true || d.original === 'true';
   if ($('f-type')) $('f-type').checked = d.is_type === 'TRUE' || d.is_type === true || d.is_type === 'true';
-  var renamedBadge = $('renamed-badge');
-  if (renamedBadge) {
-    var wasRenamed = d['Renamed?'] === 'TRUE' || d['Renamed?'] === true || d['Renamed?'] === 'true';
-    renamedBadge.style.display = wasRenamed ? 'flex' : 'none';
+  if ($('f-renamed')) {
+    var renamedVal = d.renamed !== undefined ? d.renamed : d['Renamed?'];
+    $('f-renamed').checked = renamedVal === 'TRUE' || renamedVal === true || renamedVal === 'true';
     var prevName = d['Previous Name'] || '';
-    $('renamed-badge-text').textContent = prevName ? '(was: ' + prevName + ')' : '';
+    var hint = $('renamed-hint');
+    if (hint) hint.textContent = prevName ? '(was: ' + prevName + ')' : '';
   }
   $('f-desc').value = d.desc || '';
   $('f-top').value = d.top || '';
