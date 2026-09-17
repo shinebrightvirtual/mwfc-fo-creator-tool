@@ -316,22 +316,38 @@ const URL_STORAGE_KEY = 'mwfc_script_url';
 let SCRIPT_URL = localStorage.getItem(URL_STORAGE_KEY) || '';
 
 // ── API helper ───────────────────────────────────────────────
-// Uses fetch() — works because Apps Script sets permissive CORS
-// when deployed as "Anyone" (no Google account required)
-async function api(params) {
-  if (!SCRIPT_URL) throw new Error('Not connected — paste your Apps Script URL above');
+// Uses JSONP (a <script> tag) instead of fetch() — Apps Script's
+// exec→echo redirect handshake is unreliable for cross-origin fetch(),
+// but Code.gs supports a callback= param for exactly this case.
+let apiCallCounter = 0;
+function api(params) {
+  if (!SCRIPT_URL) return Promise.reject(new Error('Not connected — paste your Apps Script URL above'));
   const url = new URL(SCRIPT_URL);
   Object.entries(params).forEach(function(kv) { url.searchParams.set(kv[0], String(kv[1])); });
-  try {
-    const resp = await fetch(url.toString(), {redirect: 'follow'});
-    const text = await resp.text();
-    // Handle JSONP-style response if callback was added
-    const clean = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
-    try { return JSON.parse(clean); }
-    catch(e) { return JSON.parse(text); }
-  } catch(err) {
-    throw new Error('Connection failed: ' + err.message + '. Make sure "Who has access" is set to "Anyone" in deployment settings.');
-  }
+  return new Promise(function(resolve, reject) {
+    const cbName = 'mwfcApiCb' + (++apiCallCounter) + '_' + Date.now();
+    url.searchParams.set('callback', cbName);
+    const script = document.createElement('script');
+    const timeout = setTimeout(function() {
+      cleanup();
+      reject(new Error('Connection timed out. Make sure "Who has access" is set to "Anyone" in deployment settings.'));
+    }, 20000);
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('Connection failed. Make sure "Who has access" is set to "Anyone" in deployment settings.'));
+    };
+    script.src = url.toString();
+    document.head.appendChild(script);
+  });
 }
 
 const IFRA_CATS = [
