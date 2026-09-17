@@ -683,7 +683,7 @@ async function saveOil() {
     // Split into two chunks to stay under URL length limits
     const keys = Object.keys(d).filter(function(k) { return k !== 'name'; });
     const mid = Math.ceil(keys.length / 2);
-    const chunk1 = {action:'saveChunk', chunk:'1', name:d.name};
+    const chunk1 = {action:'saveChunk', chunk:'1', name:d.name, orig_name: currentName || ''};
     const chunk2 = {action:'saveChunk', chunk:'2', name:d.name};
     keys.forEach(function(k, i) {
       // Encode values to handle special chars safely

@@ -50,6 +50,10 @@ Object.keys(KEY_TO_COL).forEach(function(k) { COL_TO_KEY[KEY_TO_COL[k]] = k; });
 // Cache key prefix for chunked saves
 const CACHE_PREFIX = "mwfc_chunk1_";
 
+// Optional sheet column that logs an oil's prior name when it's renamed.
+// Add a column with this exact header to the sheet to enable it.
+const PREVIOUS_NAME_COL = "Previous Name";
+
 function doGet(e) {
   var result;
   try {
@@ -138,13 +142,25 @@ function writeOilToSheet(data) {
   var allData = getSheetData(sheet);
   var nameIdx = headers.indexOf("Oil Name");
   if (nameIdx === -1) nameIdx = headers.indexOf("name");
-  var existingRow = -1;
-  for (var i = 0; i < allData.length; i++) {
-    if (allData[i][nameIdx] && String(allData[i][nameIdx]).toLowerCase() === String(data.name).toLowerCase()) {
-      existingRow = DATA_START_ROW + i;
-      break;
+
+  function findRowByName(n) {
+    if (!n) return -1;
+    for (var i = 0; i < allData.length; i++) {
+      if (allData[i][nameIdx] && String(allData[i][nameIdx]).toLowerCase() === String(n).toLowerCase()) {
+        return DATA_START_ROW + i;
+      }
     }
+    return -1;
   }
+
+  // When the oil was renamed (orig_name differs from the new name), find the
+  // row by its original name so the rename updates that row instead of
+  // creating a duplicate.
+  var origName = data.orig_name || "";
+  var isRename = origName !== "" && origName.toLowerCase() !== String(data.name).toLowerCase();
+  var existingRow = isRename ? findRowByName(origName) : -1;
+  if (existingRow === -1) existingRow = findRowByName(data.name);
+
   var existingObj = {};
   if (existingRow > 0) {
     headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - DATA_START_ROW][i] || ""); });
@@ -178,6 +194,15 @@ function writeOilToSheet(data) {
       sheet.getRange(targetRow, colIdx + 1).setValue(writeVal);
     }
   });
+
+  // Log the prior name when this save renamed an existing row
+  if (isRename && existingRow > 0) {
+    var prevNameIdx = headers.indexOf(PREVIOUS_NAME_COL);
+    if (prevNameIdx !== -1) {
+      sheet.getRange(targetRow, prevNameIdx + 1).setValue(origName);
+    }
+  }
+
   // Apply checkbox validation to boolean columns
   var boolCols = ["Midwest Maker Signature Scent?", "Type?", "Phthalate Free?", "Contains EOs?"];
   var sheetHeaders = getSheetHeaders(sheet);
