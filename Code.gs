@@ -11,7 +11,7 @@ const SOAP_TESTING_FOLDER_ID = "1xRp_MhxRovGyyEFkDszfa4JX6zp7QAV_";
 // Friendly display names — must match sheet header row exactly
 const COLUMNS = [
   "Oil Name","Midwest Maker Signature Scent?","Type?","Description","Top Notes","Middle Notes","Base Notes","Alt Naming Ideas",
-  "Vanillin %","Ethyl Vanillin %","Flashpoint (°F)","Phthalate Free?","Contains EOs?",
+  "Vanillin %","Ethyl Vanillin %","Flashpoint (°F)","Phthalate Free?","Contains EOs?","Essential Oils List",
   "IFRA Cat 1","IFRA Cat 2","IFRA Cat 3","IFRA Cat 4","IFRA Cat 5A","IFRA Cat 5B","IFRA Cat 5C","IFRA Cat 5D",
   "IFRA Cat 6","IFRA Cat 7A","IFRA Cat 7B","IFRA Cat 8","IFRA Cat 9","IFRA Cat 10A","IFRA Cat 10B",
   "IFRA Cat 11A","IFRA Cat 11B","IFRA Cat 12",

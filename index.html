@@ -124,6 +124,10 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
       <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-original"><label for="f-original">Midwest Maker Signature Scent</label></div>
       <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-type"><label for="f-type">Type? (dupe)</label></div>
     </div>
+    <div id="renamed-badge" style="display:none;align-items:center;gap:8px;padding-top:10px;">
+      <input type="checkbox" id="f-renamed" checked disabled>
+      <label for="f-renamed" style="color:var(--terra);">Renamed <span id="renamed-badge-text"></span></label>
+    </div>
   </div>
 </div>
 
@@ -567,6 +571,7 @@ function getFields() {
 
     phthalate: chk('f-phthalate') ? 'TRUE' : 'FALSE',
     eo: chk('f-eo') ? 'TRUE' : 'FALSE',
+    eolist: r('f-eolist'),
     sds: r('f-sds'),
     ifracert: r('f-ifracert'),
     eu: r('f-eu'),
@@ -602,6 +607,13 @@ function fillFields(d) {
   $('f-name').value = d.name || '';
   $('f-original').checked = d.original === 'TRUE' || d.original === true || d.original === 'true';
   if ($('f-type')) $('f-type').checked = d.is_type === 'TRUE' || d.is_type === true || d.is_type === 'true';
+  var renamedBadge = $('renamed-badge');
+  if (renamedBadge) {
+    var wasRenamed = d['Renamed?'] === 'TRUE' || d['Renamed?'] === true || d['Renamed?'] === 'true';
+    renamedBadge.style.display = wasRenamed ? 'flex' : 'none';
+    var prevName = d['Previous Name'] || '';
+    $('renamed-badge-text').textContent = prevName ? '(was: ' + prevName + ')' : '';
+  }
   $('f-desc').value = d.desc || '';
   $('f-top').value = d.top || '';
   $('f-mid').value = d.mid || '';
