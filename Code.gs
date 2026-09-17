@@ -50,9 +50,10 @@ Object.keys(KEY_TO_COL).forEach(function(k) { COL_TO_KEY[KEY_TO_COL[k]] = k; });
 // Cache key prefix for chunked saves
 const CACHE_PREFIX = "mwfc_chunk1_";
 
-// Optional sheet column that logs an oil's prior name when it's renamed.
-// Add a column with this exact header to the sheet to enable it.
+// Optional sheet columns for tracking renames.
+// Add columns with these exact headers to the sheet to enable them.
 const PREVIOUS_NAME_COL = "Previous Name";
+const RENAMED_COL = "Renamed?";
 
 function doGet(e) {
   var result;
@@ -195,16 +196,20 @@ function writeOilToSheet(data) {
     }
   });
 
-  // Log the prior name when this save renamed an existing row
+  // Log the prior name and flag the row when this save renamed an existing row
   if (isRename && existingRow > 0) {
     var prevNameIdx = headers.indexOf(PREVIOUS_NAME_COL);
     if (prevNameIdx !== -1) {
       sheet.getRange(targetRow, prevNameIdx + 1).setValue(origName);
     }
+    var renamedIdx = headers.indexOf(RENAMED_COL);
+    if (renamedIdx !== -1) {
+      sheet.getRange(targetRow, renamedIdx + 1).setValue(true);
+    }
   }
 
   // Apply checkbox validation to boolean columns
-  var boolCols = ["Midwest Maker Signature Scent?", "Type?", "Phthalate Free?", "Contains EOs?"];
+  var boolCols = ["Midwest Maker Signature Scent?", "Type?", "Phthalate Free?", "Contains EOs?", RENAMED_COL];
   var sheetHeaders = getSheetHeaders(sheet);
   boolCols.forEach(function(colName) {
     var colIdx = sheetHeaders.indexOf(colName);
