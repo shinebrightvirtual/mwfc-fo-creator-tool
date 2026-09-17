@@ -11,7 +11,7 @@ const SOAP_TESTING_FOLDER_ID = "1xRp_MhxRovGyyEFkDszfa4JX6zp7QAV_";
 // Friendly display names — must match sheet header row exactly
 const COLUMNS = [
   "Oil Name","Midwest Maker Signature Scent?","Type?","Description","Top Notes","Middle Notes","Base Notes","Alt Naming Ideas",
-  "Vanillin %","Ethyl Vanillin %","Flashpoint (°F)","Phthalate Free?","Contains EOs?",
+  "Vanillin %","Ethyl Vanillin %","Flashpoint (°F)","Phthalate Free?","Contains EOs?","Essential Oils List",
   "IFRA Cat 1","IFRA Cat 2","IFRA Cat 3","IFRA Cat 4","IFRA Cat 5A","IFRA Cat 5B","IFRA Cat 5C","IFRA Cat 5D",
   "IFRA Cat 6","IFRA Cat 7A","IFRA Cat 7B","IFRA Cat 8","IFRA Cat 9","IFRA Cat 10A","IFRA Cat 10B",
   "IFRA Cat 11A","IFRA Cat 11B","IFRA Cat 12",
@@ -49,6 +49,11 @@ Object.keys(KEY_TO_COL).forEach(function(k) { COL_TO_KEY[KEY_TO_COL[k]] = k; });
 
 // Cache key prefix for chunked saves
 const CACHE_PREFIX = "mwfc_chunk1_";
+
+// Optional sheet columns for tracking renames.
+// Add columns with these exact headers to the sheet to enable them.
+const PREVIOUS_NAME_COL = "Previous Name";
+const RENAMED_COL = "Renamed?";
 
 function doGet(e) {
   var result;
@@ -138,13 +143,25 @@ function writeOilToSheet(data) {
   var allData = getSheetData(sheet);
   var nameIdx = headers.indexOf("Oil Name");
   if (nameIdx === -1) nameIdx = headers.indexOf("name");
-  var existingRow = -1;
-  for (var i = 0; i < allData.length; i++) {
-    if (allData[i][nameIdx] && String(allData[i][nameIdx]).toLowerCase() === String(data.name).toLowerCase()) {
-      existingRow = DATA_START_ROW + i;
-      break;
+
+  function findRowByName(n) {
+    if (!n) return -1;
+    for (var i = 0; i < allData.length; i++) {
+      if (allData[i][nameIdx] && String(allData[i][nameIdx]).toLowerCase() === String(n).toLowerCase()) {
+        return DATA_START_ROW + i;
+      }
     }
+    return -1;
   }
+
+  // When the oil was renamed (orig_name differs from the new name), find the
+  // row by its original name so the rename updates that row instead of
+  // creating a duplicate.
+  var origName = data.orig_name || "";
+  var isRename = origName !== "" && origName.toLowerCase() !== String(data.name).toLowerCase();
+  var existingRow = isRename ? findRowByName(origName) : -1;
+  if (existingRow === -1) existingRow = findRowByName(data.name);
+
   var existingObj = {};
   if (existingRow > 0) {
     headers.forEach(function(h, i) { existingObj[h] = String(allData[existingRow - DATA_START_ROW][i] || ""); });
@@ -178,8 +195,21 @@ function writeOilToSheet(data) {
       sheet.getRange(targetRow, colIdx + 1).setValue(writeVal);
     }
   });
+
+  // Log the prior name and flag the row when this save renamed an existing row
+  if (isRename && existingRow > 0) {
+    var prevNameIdx = headers.indexOf(PREVIOUS_NAME_COL);
+    if (prevNameIdx !== -1) {
+      sheet.getRange(targetRow, prevNameIdx + 1).setValue(origName);
+    }
+    var renamedIdx = headers.indexOf(RENAMED_COL);
+    if (renamedIdx !== -1) {
+      sheet.getRange(targetRow, renamedIdx + 1).setValue(true);
+    }
+  }
+
   // Apply checkbox validation to boolean columns
-  var boolCols = ["Midwest Maker Signature Scent?", "Phthalate Free?", "Contains EOs?"];
+  var boolCols = ["Midwest Maker Signature Scent?", "Type?", "Phthalate Free?", "Contains EOs?", RENAMED_COL];
   var sheetHeaders = getSheetHeaders(sheet);
   boolCols.forEach(function(colName) {
     var colIdx = sheetHeaders.indexOf(colName);

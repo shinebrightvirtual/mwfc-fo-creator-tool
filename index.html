@@ -124,6 +124,10 @@ body{font-family:'Arial',sans-serif;background:var(--off-white);color:var(--blac
       <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-original"><label for="f-original">Midwest Maker Signature Scent</label></div>
       <div class="toggle-row" style="padding-top:0;"><input type="checkbox" id="f-type"><label for="f-type">Type? (dupe)</label></div>
     </div>
+    <div id="renamed-badge" style="display:none;align-items:center;gap:8px;padding-top:10px;">
+      <input type="checkbox" id="f-renamed" checked disabled>
+      <label for="f-renamed" style="color:var(--terra);">Renamed <span id="renamed-badge-text"></span></label>
+    </div>
   </div>
 </div>
 
@@ -316,22 +320,38 @@ const URL_STORAGE_KEY = 'mwfc_script_url';
 let SCRIPT_URL = localStorage.getItem(URL_STORAGE_KEY) || '';
 
 // ── API helper ───────────────────────────────────────────────
-// Uses fetch() — works because Apps Script sets permissive CORS
-// when deployed as "Anyone" (no Google account required)
-async function api(params) {
-  if (!SCRIPT_URL) throw new Error('Not connected — paste your Apps Script URL above');
+// Uses JSONP (a <script> tag) instead of fetch() — Apps Script's
+// exec→echo redirect handshake is unreliable for cross-origin fetch(),
+// but Code.gs supports a callback= param for exactly this case.
+let apiCallCounter = 0;
+function api(params) {
+  if (!SCRIPT_URL) return Promise.reject(new Error('Not connected — paste your Apps Script URL above'));
   const url = new URL(SCRIPT_URL);
   Object.entries(params).forEach(function(kv) { url.searchParams.set(kv[0], String(kv[1])); });
-  try {
-    const resp = await fetch(url.toString(), {redirect: 'follow'});
-    const text = await resp.text();
-    // Handle JSONP-style response if callback was added
-    const clean = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
-    try { return JSON.parse(clean); }
-    catch(e) { return JSON.parse(text); }
-  } catch(err) {
-    throw new Error('Connection failed: ' + err.message + '. Make sure "Who has access" is set to "Anyone" in deployment settings.');
-  }
+  return new Promise(function(resolve, reject) {
+    const cbName = 'mwfcApiCb' + (++apiCallCounter) + '_' + Date.now();
+    url.searchParams.set('callback', cbName);
+    const script = document.createElement('script');
+    const timeout = setTimeout(function() {
+      cleanup();
+      reject(new Error('Connection timed out. Make sure "Who has access" is set to "Anyone" in deployment settings.'));
+    }, 20000);
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('Connection failed. Make sure "Who has access" is set to "Anyone" in deployment settings.'));
+    };
+    script.src = url.toString();
+    document.head.appendChild(script);
+  });
 }
 
 const IFRA_CATS = [
@@ -539,6 +559,7 @@ function getFields() {
   return Object.assign({
     name: r('f-name'),
     original: chk('f-original') ? 'TRUE' : 'FALSE',
+    is_type: chk('f-type') ? 'TRUE' : 'FALSE',
     desc: r('f-desc'),
     top: r('f-top'),
     mid: r('f-mid'),
@@ -550,6 +571,7 @@ function getFields() {
 
     phthalate: chk('f-phthalate') ? 'TRUE' : 'FALSE',
     eo: chk('f-eo') ? 'TRUE' : 'FALSE',
+    eolist: r('f-eolist'),
     sds: r('f-sds'),
     ifracert: r('f-ifracert'),
     eu: r('f-eu'),
@@ -585,6 +607,13 @@ function fillFields(d) {
   $('f-name').value = d.name || '';
   $('f-original').checked = d.original === 'TRUE' || d.original === true || d.original === 'true';
   if ($('f-type')) $('f-type').checked = d.is_type === 'TRUE' || d.is_type === true || d.is_type === 'true';
+  var renamedBadge = $('renamed-badge');
+  if (renamedBadge) {
+    var wasRenamed = d['Renamed?'] === 'TRUE' || d['Renamed?'] === true || d['Renamed?'] === 'true';
+    renamedBadge.style.display = wasRenamed ? 'flex' : 'none';
+    var prevName = d['Previous Name'] || '';
+    $('renamed-badge-text').textContent = prevName ? '(was: ' + prevName + ')' : '';
+  }
   $('f-desc').value = d.desc || '';
   $('f-top').value = d.top || '';
   $('f-mid').value = d.mid || '';
@@ -666,7 +695,7 @@ async function saveOil() {
     // Split into two chunks to stay under URL length limits
     const keys = Object.keys(d).filter(function(k) { return k !== 'name'; });
     const mid = Math.ceil(keys.length / 2);
-    const chunk1 = {action:'saveChunk', chunk:'1', name:d.name};
+    const chunk1 = {action:'saveChunk', chunk:'1', name:d.name, orig_name: currentName || ''};
     const chunk2 = {action:'saveChunk', chunk:'2', name:d.name};
     keys.forEach(function(k, i) {
       // Encode values to handle special chars safely
@@ -727,7 +756,9 @@ function generateHTML() {
   }
   if (d.original === 'TRUE') h += '<p><strong>Midwest Makers&trade; Signature Scent</strong></p>\n<p>&nbsp;</p>\n';
   if (d.altnames) h += '<p><strong>Alternative naming ideas:</strong> ' + esc(d.altnames) + '<br><br><strong></strong></p>\n';
-  h += '<p><strong><span style="' + ls + '"><a href="https://midwestfragranceco.com/blogs/resources/mwfc-oils-alternate-name-suggestions" style="' + lsa + '" rel="noopener" target="_blank">Need naming inspiration? Visit our resource here!</a></span></strong></p>\n';
+  h += '<p><strong>Using this fragrance in your own products?</strong><br>';
+  h += 'We encourage makers to give their finished products their <strong>own unique names</strong>.<br>';
+  h += '<span style="' + ls + '"><a href="https://midwestfragranceco.com/blogs/resources/mwfc-oils-alternate-name-suggestions" style="' + lsa + '" rel="noopener" target="_blank">Need naming inspiration? Visit our fragrance naming resource here!</a></span></p>\n';
   if (d.is_type === 'TRUE') {
     h += '<p>&nbsp;</p>\n';
     h += '<p><em>Disclaimer: At Midwest Fragrance Company (MWFC), we take great pride in offering our customers specialty fragrance oils designed to be used in their finished products. The fragrance oils are obtained through a combination of creation, modification, and occasional duplication of scents then produced by and purchased from our supplier. All references by MWFC to trademarked names or brands are clearly identified and intended only to better describe the aroma to purchasers. The references made do not infer any endorsement or affiliation between the trademark holder and MWFC, our product, or our website, and are intended to convey the greatest professional respect for said trademark holders.</em></p>\n';
