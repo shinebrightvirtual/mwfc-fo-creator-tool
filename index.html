@@ -844,7 +844,7 @@ function generateHTML() {
   if (d.c_notes) h += '<p>' + esc(d.c_notes) + '</p>\n';
   h += '<p><br>Disclaimer: Test results are intended to be used as a guideline and are subjective. Results may vary based on individual recipes.&nbsp;</p>\n';
   if (d.fill_line_photo) {
-    h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><img src="' + esc(driveImgUrl(d.fill_line_photo)) + '" alt="Fill Line Photo" style="max-width: 450px; height: auto; display: inline-block;"></p>\n';
+    h += '<p>&nbsp;</p>\n<div style="max-width: 300px; margin: 0 auto;"><img src="' + esc(driveImgUrl(d.fill_line_photo)) + '" alt=""></div>\n';
   }
 
   // Soap Testing
@@ -866,7 +866,7 @@ function generateHTML() {
   h += '<p>&nbsp;</p>\n';
   h += '<p><span>Disclaimer: Test results are intended to be used as a guideline. Results may vary based on individual recipes.&nbsp;</span></p>\n';
   if (d.soap_test_photo) {
-    h += '<p class="_5RYuEA direction-ltr align-center para-style-body"><img src="' + esc(driveImgUrl(d.soap_test_photo)) + '" alt="Soap Testing Photo" style="max-width: 450px; height: auto; display: inline-block;"></p>\n';
+    h += '<p>&nbsp;</p>\n<div style="max-width: 300px; margin: 0 auto;"><img src="' + esc(driveImgUrl(d.soap_test_photo)) + '" alt=""></div>\n';
   }
   h += '<div><br></div>\n';
 
